@@ -1,0 +1,10 @@
+{
+  "name": "@placeholder/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Web: coming in Phase 5'",
+    "build": "echo 'Web: coming in Phase 5'",
+    "clean": "rm -rf dist .turbo"
+  }
+}
