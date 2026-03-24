@@ -1,35 +1,49 @@
 import React, { useState, useEffect, useCallback } from "react";
-import type { ScanState, ExtensionMessage } from "@placeholder/shared";
-import { APP_NAME } from "@placeholder/shared";
+import type { ScanState, ScanResult, ExtensionMessage } from "@placeholder/shared";
+import { APP_NAME, SCORE_WEIGHTS } from "@placeholder/shared";
 import ScanButton from "./components/ScanButton";
 import ScanProgress from "./components/ScanProgress";
 import ScoreGauge from "./components/ScoreGauge";
 import PlaceholderBox from "./components/PlaceholderBox";
 
-// Mock data for the score gauge
-const MOCK_CATEGORY_LOSSES = [
-  { name: "Accessibility", pointsLost: 12, color: "#7BA3C4" },
-  { name: "UX Heuristics", pointsLost: 8, color: "#9B82B8" },
-  { name: "Forms", pointsLost: 3, color: "#6BA8A0" },
-  { name: "Content", pointsLost: 2, color: "#C4A04E" },
-  { name: "Visual", pointsLost: 1, color: "#C48A9A" },
-  { name: "Performance", pointsLost: 1, color: "#8893A6" },
-];
+const CATEGORY_COLORS: Record<string, string> = {
+  Accessibility: "#7BA3C4",
+  "UX Heuristics": "#9B82B8",
+  Forms: "#6BA8A0",
+  Content: "#C4A04E",
+  Visual: "#C48A9A",
+  Performance: "#8893A6",
+};
+
+function buildCategoryLosses(result: ScanResult) {
+  return result.categories.map((cat) => {
+    const maxScore = Math.round(cat.weight * 100);
+    const pointsLost = Math.max(0, maxScore - Math.round(cat.score * cat.weight));
+    return {
+      name: cat.name,
+      pointsLost,
+      color: CATEGORY_COLORS[cat.name] || "#8893A6",
+    };
+  });
+}
 
 export default function App() {
   const [state, setState] = useState<ScanState>("idle");
   const [progressMessage, setProgressMessage] = useState("");
   const [progressPercent, setProgressPercent] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
 
   useEffect(() => {
     const listener = (message: ExtensionMessage) => {
       switch (message.type) {
         case "SCAN_PROGRESS":
+          setState("scanning");
           setProgressMessage(message.message);
           setProgressPercent(message.percent);
           break;
         case "SCAN_COMPLETE":
+          setScanResult(message.result);
           setState("complete");
           break;
         case "SCAN_ERROR":
@@ -118,9 +132,16 @@ export default function App() {
         <div className="animate-fade-in space-y-3">
           {/* Real ScoreGauge */}
           <ScoreGauge
-            score={73}
-            categoryLosses={MOCK_CATEGORY_LOSSES}
-            pageType="landing"
+            score={scanResult?.overallScore ?? 73}
+            categoryLosses={scanResult ? buildCategoryLosses(scanResult) : [
+              { name: "Accessibility", pointsLost: 12, color: "#7BA3C4" },
+              { name: "UX Heuristics", pointsLost: 8, color: "#9B82B8" },
+              { name: "Forms", pointsLost: 3, color: "#6BA8A0" },
+              { name: "Content", pointsLost: 2, color: "#C4A04E" },
+              { name: "Visual", pointsLost: 1, color: "#C48A9A" },
+              { name: "Performance", pointsLost: 1, color: "#8893A6" },
+            ]}
+            pageType={scanResult?.pageType ?? "landing"}
             animated={true}
           />
 
@@ -151,10 +172,11 @@ export default function App() {
           {/* Footer */}
           <div className="text-center pt-2 pb-3 border-t border-surface-200">
             <p className="text-2xs text-surface-500">
-              Scanned 847 elements
+              Scanned {scanResult?.crawl?.totalElements ?? "—"} elements
             </p>
             <p className="text-2xs text-surface-400">
-              yoursite.com &middot; 2:34 PM
+              {scanResult?.url ? new URL(scanResult.url).hostname : "—"} &middot;{" "}
+              {scanResult?.timestamp ? new Date(scanResult.timestamp).toLocaleTimeString() : "—"}
             </p>
           </div>
         </div>

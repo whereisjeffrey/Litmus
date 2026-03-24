@@ -1,18 +1,15 @@
 import type { ExtensionMessage } from "@placeholder/shared";
 
 /**
- * Opens the side panel when the extension action icon is clicked.
+ * Set the side panel to be available on all pages.
  */
-chrome.action.onClicked.addListener((tab) => {
-  if (tab.id !== undefined) {
-    chrome.sidePanel.open({ tabId: tab.id });
-  }
-});
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 /**
  * Relay messages between the side panel and content scripts.
- * The side panel sends START_SCAN, this forwards it to the active tab's content script.
- * The content script sends progress/complete/error messages back, relayed to the side panel.
+ *
+ * Messages from the side panel (no sender.tab) get forwarded to the active tab's content script.
+ * Messages from content scripts (have sender.tab) get forwarded to the side panel via runtime.sendMessage.
  */
 chrome.runtime.onMessage.addListener(
   (
@@ -20,34 +17,36 @@ chrome.runtime.onMessage.addListener(
     sender: chrome.runtime.MessageSender,
     sendResponse: (response?: unknown) => void
   ) => {
-    if (message.type === "START_SCAN") {
-      // Forward to the content script in the active tab
+    // Message from the side panel → forward to content script
+    if (message.type === "START_SCAN" && !sender.tab) {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         const tabId = tabs[0]?.id;
         if (tabId !== undefined) {
-          chrome.tabs.sendMessage(tabId, message);
+          chrome.tabs.sendMessage(tabId, message).catch(() => {
+            // Content script might not be injected yet
+            chrome.runtime.sendMessage({
+              type: "SCAN_ERROR",
+              error: "Could not connect to page. Try refreshing the page and scanning again.",
+            } satisfies ExtensionMessage).catch(() => {});
+          });
         }
       });
       sendResponse({ status: "forwarded" });
       return true;
     }
 
+    // Message from content script → forward to side panel (and any other extension pages)
     if (
-      message.type === "SCAN_PROGRESS" ||
-      message.type === "SCAN_COMPLETE" ||
-      message.type === "SCAN_ERROR"
+      sender.tab &&
+      (message.type === "SCAN_PROGRESS" ||
+        message.type === "SCAN_COMPLETE" ||
+        message.type === "SCAN_ERROR")
     ) {
-      // These come from the content script — broadcast to all extension pages (side panel)
       chrome.runtime.sendMessage(message).catch(() => {
-        // Side panel might not be open; swallow the error
+        // Side panel might not be open; swallow
       });
     }
 
     return false;
   }
 );
-
-/**
- * Set the side panel to be available on all pages.
- */
-chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
