@@ -9,3 +9,4 @@ dist/
 coverage/
 .vscode/
 !.vscode/settings.json
+.claude/scheduled_tasks.lock
