@@ -111,7 +111,7 @@ function crawlRoot(
     }
   );
 
-  let node: Node | null = walker.currentNode;
+  let node: Node | null = walker.nextNode();
 
   while (node && elements.length < maxElements) {
     // Timeout check every 100 elements
@@ -119,7 +119,13 @@ function crawlRoot(
       return;
     }
 
-    const el = node as Element;
+    // Safety: skip non-Element nodes
+    if (!(node instanceof Element)) {
+      node = walker.nextNode();
+      continue;
+    }
+
+    const el = node;
     const visible = isVisible(el);
 
     // Still record the element but mark visibility

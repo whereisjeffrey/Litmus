@@ -187,15 +187,13 @@ export default function ScoreGauge({
   const scoreDashArray = `${animatedScoreArc} ${circumference - animatedScoreArc}`;
 
   return (
-    <div className="card">
+    <div className="card overflow-hidden">
       <div className="flex flex-col items-center">
         {/* SVG Gauge */}
-        <div className="relative" style={{ width: SIZE, height: SIZE }}>
+        <div className="relative w-[200px] max-w-full aspect-square">
           <svg
-            width={SIZE}
-            height={SIZE}
             viewBox={`0 0 ${SIZE} ${SIZE}`}
-            className="transform -rotate-90"
+            className="w-full h-full transform -rotate-90"
           >
             {/* Background track (very subtle) */}
             <circle
@@ -263,17 +261,17 @@ export default function ScoreGauge({
         {/* Category loss breakdown */}
         {lossSegments.length > 0 && (
           <div className="w-full mt-3 pt-3 border-t border-surface-200">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+            <div className="flex flex-col gap-1.5">
               {lossSegments.map((seg) => (
-                <div key={seg.name} className="flex items-center gap-2">
+                <div key={seg.name} className="flex items-center gap-2 min-w-0">
                   <span
                     className="w-2 h-2 rounded-full flex-shrink-0"
                     style={{ backgroundColor: seg.color }}
                   />
-                  <span className="text-2xs text-surface-600 truncate">
+                  <span className="text-2xs text-surface-600 truncate flex-1 min-w-0">
                     {seg.name}
                   </span>
-                  <span className="text-2xs font-medium text-surface-800 ml-auto">
+                  <span className="text-2xs font-medium text-surface-800 flex-shrink-0">
                     &minus;{seg.pointsLost}
                   </span>
                 </div>

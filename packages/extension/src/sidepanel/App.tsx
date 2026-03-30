@@ -77,7 +77,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-surface-50 px-4 py-4" style={{ width: 380 }}>
+    <div className="min-h-screen bg-surface-50 px-3 py-3 w-full box-border overflow-x-hidden">
       {/* Header */}
       <header className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
