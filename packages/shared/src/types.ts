@@ -312,8 +312,29 @@ export interface ScanErrorMessage {
   error: string;
 }
 
+export interface ShowElementMessage {
+  type: "SHOW_ELEMENT";
+  selector: string;
+  title: string;
+  description: string;
+}
+
+export interface HideElementMessage {
+  type: "HIDE_ELEMENT";
+}
+
+export type ViewportMode = "desktop" | "mobile";
+
+export interface SetViewportMessage {
+  type: "SET_VIEWPORT";
+  mode: ViewportMode;
+}
+
 export type ExtensionMessage =
   | StartScanMessage
   | ScanProgressMessage
   | ScanCompleteMessage
-  | ScanErrorMessage;
+  | ScanErrorMessage
+  | ShowElementMessage
+  | HideElementMessage
+  | SetViewportMessage;

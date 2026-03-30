@@ -126,16 +126,6 @@ export default function ResultsPanel({ result }: ResultsPanelProps) {
         )}
       </div>
 
-      {/* Page info footer */}
-      <div className="text-center pt-2 pb-4">
-        <p className="text-2xs text-surface-400">
-          Scanned {result.crawl.totalElements} elements at{" "}
-          {new URL(result.url).hostname}
-        </p>
-        <p className="text-2xs text-surface-400">
-          {new Date(result.timestamp).toLocaleTimeString()}
-        </p>
-      </div>
     </div>
   );
 }

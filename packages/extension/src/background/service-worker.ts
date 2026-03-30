@@ -18,16 +18,24 @@ chrome.runtime.onMessage.addListener(
     sendResponse: (response?: unknown) => void
   ) => {
     // Message from the side panel → forward to content script
-    if (message.type === "START_SCAN" && !sender.tab) {
+    if (
+      (message.type === "START_SCAN" ||
+        message.type === "SHOW_ELEMENT" ||
+        message.type === "HIDE_ELEMENT" ||
+        message.type === "SET_VIEWPORT") &&
+      !sender.tab
+    ) {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         const tabId = tabs[0]?.id;
         if (tabId !== undefined) {
           chrome.tabs.sendMessage(tabId, message).catch(() => {
-            // Content script might not be injected yet
-            chrome.runtime.sendMessage({
-              type: "SCAN_ERROR",
-              error: "Could not connect to page. Try refreshing the page and scanning again.",
-            } satisfies ExtensionMessage).catch(() => {});
+            if (message.type === "START_SCAN") {
+              // Content script might not be injected yet
+              chrome.runtime.sendMessage({
+                type: "SCAN_ERROR",
+                error: "Could not connect to page. Try refreshing the page and scanning again.",
+              } satisfies ExtensionMessage).catch(() => {});
+            }
           });
         }
       });
