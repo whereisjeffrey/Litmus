@@ -364,3 +364,32 @@ export type ExtensionMessage =
   | ShowElementMessage
   | HideElementMessage
   | SetViewportMessage;
+
+// ─── API Types ──────────────────────────────────────────────────────
+
+export interface SaveScanRequest {
+  url: string;
+  pageType: string;
+  overallScore: number;
+  viewportMode: string;
+  categoryScores: CategoryScore[];
+  aiAnalysis?: AIAnalysis;
+  findings: Finding[];
+}
+
+export interface ScanHistoryItem {
+  id: string;
+  url: string;
+  pageType: string;
+  overallScore: number;
+  viewportMode: string;
+  createdAt: string;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  fullName: string | null;
+  plan: "free" | "pro" | "team" | "enterprise";
+  createdAt: string;
+}

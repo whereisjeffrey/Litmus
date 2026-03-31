@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "dev:extension": "turbo run dev --filter=@placeholder/extension",
+    "dev:api": "turbo run dev --filter=@placeholder/api",
     "build": "turbo run build",
     "build:extension": "turbo run build --filter=@placeholder/extension",
     "typecheck": "turbo run typecheck",
