@@ -252,8 +252,8 @@ export default function ScoreGauge({
             >
               {scoreLabel}
             </span>
-            <span className="text-2xs text-surface-500 mt-1 capitalize">
-              {pageType} page
+            <span className="text-2xs text-surface-500 mt-1">
+              {pageType}
             </span>
           </div>
         </div>

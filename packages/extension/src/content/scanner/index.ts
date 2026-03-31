@@ -23,6 +23,7 @@ import { auditImages } from "./image-auditor";
 import { checkMeta } from "./meta-checker";
 import { checkTouchTargets } from "./touch-targets";
 import { collectConsoleErrors } from "./console-capture";
+import { detectPageType } from "./page-type-detector";
 
 type ProgressCallback = (message: string, percent: number) => void;
 
@@ -56,57 +57,6 @@ function safeRun<T>(
     console.warn(`[Placeholder] Scanner "${name}" failed:`, err);
     return fallback;
   }
-}
-
-/**
- * Guesses the page type from DOM structure and meta data.
- */
-function detectPageType(crawl: CrawlResult): PageType {
-  const url = crawl.url.toLowerCase();
-
-  // E-commerce signals
-  const hasCart = !!document.querySelector(
-    '[class*="cart"], [id*="cart"], [data-cart], .add-to-cart'
-  );
-  const hasPrice = !!document.querySelector(
-    '[class*="price"], [itemprop="price"], .product-price'
-  );
-  if (hasCart || hasPrice) return PageType.ECommerce;
-
-  // Form-heavy page
-  const formFields = document.querySelectorAll(
-    "input:not([type='hidden']), textarea, select"
-  ).length;
-  if (formFields > 5) return PageType.Form;
-
-  // Dashboard signals
-  const hasDashboard =
-    url.includes("dashboard") ||
-    url.includes("/app") ||
-    !!document.querySelector('[class*="sidebar"], [class*="nav-menu"]');
-  if (hasDashboard && formFields > 0) return PageType.Dashboard;
-
-  // Article/blog signals
-  const hasArticle = !!document.querySelector("article, [role='article']");
-  const bodyText = document.body.textContent?.toLowerCase() || "";
-  const longContent = bodyText.length > 3000;
-  const hasManyParagraphs = document.querySelectorAll("p").length > 5;
-  if (hasArticle || (longContent && hasManyParagraphs)) return PageType.Article;
-
-  // Documentation signals
-  const hasSidebar = !!document.querySelector(
-    '[class*="sidebar"], [class*="toc"], [class*="docs-nav"]'
-  );
-  const hasCodeBlocks = document.querySelectorAll("pre, code").length > 2;
-  if (hasSidebar && hasCodeBlocks) return PageType.Documentation;
-
-  // Landing page (default for simple pages with CTAs)
-  const hasCTA = !!document.querySelector(
-    '[class*="hero"], [class*="cta"], [class*="landing"]'
-  );
-  if (hasCTA || crawl.totalElements < 200) return PageType.Landing;
-
-  return PageType.Unknown;
 }
 
 /**
@@ -259,11 +209,15 @@ export async function runFullScan(
 
   const isTimedOut = () => Date.now() - scanStart > TOTAL_SCAN_TIMEOUT_MS;
 
+  // Detect page type early — before crawling — so results can be contextualised
+  const pageType: PageType = safeRun("page-type-detector", detectPageType, PageType.Unknown);
+  onProgress(`Detected: ${pageType}`, 3);
+
   onProgress("Reading your page...", 5);
   const crawl: CrawlResult = safeRun("dom-crawler", crawlDOM, EMPTY_CRAWL);
 
   if (isTimedOut()) {
-    return buildResult(crawl, EMPTY_LINKS, EMPTY_CONTRAST, EMPTY_HEADINGS, EMPTY_FORMS, EMPTY_IMAGES, EMPTY_META, EMPTY_TOUCH, EMPTY_CONSOLE);
+    return buildResult(crawl, EMPTY_LINKS, EMPTY_CONTRAST, EMPTY_HEADINGS, EMPTY_FORMS, EMPTY_IMAGES, EMPTY_META, EMPTY_TOUCH, EMPTY_CONSOLE, pageType);
   }
 
   onProgress("Checking links...", 15);
@@ -274,7 +228,7 @@ export async function runFullScan(
   const headings: HeadingResult = safeRun("heading-checker", checkHeadings, EMPTY_HEADINGS);
 
   if (isTimedOut()) {
-    return buildResult(crawl, links, contrast, headings, EMPTY_FORMS, EMPTY_IMAGES, EMPTY_META, EMPTY_TOUCH, EMPTY_CONSOLE);
+    return buildResult(crawl, links, contrast, headings, EMPTY_FORMS, EMPTY_IMAGES, EMPTY_META, EMPTY_TOUCH, EMPTY_CONSOLE, pageType);
   }
 
   onProgress("Analyzing forms & inputs...", 50);
@@ -284,7 +238,7 @@ export async function runFullScan(
   const images: ImageResult = safeRun("image-auditor", auditImages, EMPTY_IMAGES);
 
   if (isTimedOut()) {
-    return buildResult(crawl, links, contrast, headings, forms, images, EMPTY_META, EMPTY_TOUCH, EMPTY_CONSOLE);
+    return buildResult(crawl, links, contrast, headings, forms, images, EMPTY_META, EMPTY_TOUCH, EMPTY_CONSOLE, pageType);
   }
 
   onProgress("Evaluating user experience...", 75);
@@ -296,7 +250,7 @@ export async function runFullScan(
 
   onProgress("Crunching the numbers...", 95);
 
-  return buildResult(crawl, links, contrast, headings, forms, images, meta, touchTargets, consoleResult);
+  return buildResult(crawl, links, contrast, headings, forms, images, meta, touchTargets, consoleResult, pageType);
 }
 
 /**
@@ -311,7 +265,8 @@ function buildResult(
   images: ImageResult,
   meta: MetaResult,
   touchTargets: TouchTargetResult,
-  consoleResult: ConsoleResult
+  consoleResult: ConsoleResult,
+  pageType: PageType = PageType.Unknown
 ): ScanResult {
   // Merge all findings and assign unique IDs
   const allFindings: Finding[] = [
@@ -341,8 +296,6 @@ function buildResult(
   const overallScore = Math.round(
     categories.reduce((sum, cat) => sum + cat.score * cat.weight, 0)
   );
-
-  const pageType = detectPageType(crawl);
 
   return {
     url: crawl.url,

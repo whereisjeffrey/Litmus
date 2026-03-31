@@ -186,7 +186,7 @@ export default function App() {
               { name: "Visual", pointsLost: 1, color: "#C48A9A" },
               { name: "Performance", pointsLost: 1, color: "#8893A6" },
             ]}
-            pageType={scanResult?.pageType ?? "landing"}
+            pageType={scanResult?.pageType ?? "Web Page"}
             animated={true}
           />
 

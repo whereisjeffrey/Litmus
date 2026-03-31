@@ -5,13 +5,21 @@ export type FindingSeverity = "critical" | "warning" | "info";
 export type ScanState = "idle" | "scanning" | "complete" | "error";
 
 export enum PageType {
-  Landing = "landing",
-  Article = "article",
-  ECommerce = "ecommerce",
-  Form = "form",
-  Dashboard = "dashboard",
-  Documentation = "documentation",
-  Unknown = "unknown",
+  Landing = "Landing Page",
+  Pricing = "Pricing Page",
+  Checkout = "Checkout",
+  Signup = "Signup / Register",
+  Login = "Login",
+  Dashboard = "Dashboard / App",
+  Blog = "Blog / Article",
+  Product = "Product Page",
+  Contact = "Contact / Support",
+  Documentation = "Documentation",
+  Settings = "Settings",
+  Onboarding = "Onboarding",
+  Homepage = "Homepage",
+  About = "About Page",
+  Unknown = "Web Page",
 }
 
 // ─── Findings ───────────────────────────────────────────────────────
