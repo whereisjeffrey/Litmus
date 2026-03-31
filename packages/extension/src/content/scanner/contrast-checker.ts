@@ -5,6 +5,7 @@ import {
   LARGE_TEXT_PX,
   LARGE_TEXT_BOLD_PX,
 } from "@placeholder/shared";
+import { getReliableSelector } from "./selector-utils";
 
 /**
  * Parses a CSS color string (rgb, rgba, hsl, hsla, hex, named) into [r, g, b, a].
@@ -201,19 +202,8 @@ function getEffectiveBackgroundColor(el: Element): [number, number, number] {
 /**
  * Generates a proper unique selector for an element.
  */
-function getSelectorForElement(el: Element, index: number): string {
-  if (el.id) return `#${CSS.escape(el.id)}`;
-  const parent = el.parentElement;
-  if (parent) {
-    const siblings = Array.from(parent.children).filter(
-      (s) => s.tagName === el.tagName
-    );
-    if (siblings.length > 1) {
-      const idx = siblings.indexOf(el) + 1;
-      return `${el.tagName.toLowerCase()}:nth-of-type(${idx})`;
-    }
-  }
-  return `${el.tagName.toLowerCase()}.contrast-${index}`;
+function getSelectorForElement(el: Element, _index: number): string {
+  return getReliableSelector(el);
 }
 
 /**
@@ -267,6 +257,12 @@ export function checkContrast(): ContrastResult {
   elements.forEach((el, index) => {
     if (pairs.length >= MAX_PAIRS) return;
 
+    // Skip elements inside <noscript> tags
+    if (el.closest("noscript")) return;
+
+    // Skip elements with aria-hidden="true" (not visible to users)
+    if (el.getAttribute("aria-hidden") === "true" || el.closest("[aria-hidden='true']")) return;
+
     // Only check elements with direct text content
     const text = Array.from(el.childNodes)
       .filter((n) => n.nodeType === Node.TEXT_NODE)
@@ -274,9 +270,11 @@ export function checkContrast(): ContrastResult {
       .join("")
       .trim();
 
-    if (!text) return;
+    // Skip elements where the text is just whitespace
+    if (!text || !text.replace(/\s/g, "")) return;
 
     const rect = el.getBoundingClientRect();
+    // Skip elements with 0 width or 0 height (invisible text)
     if (rect.width === 0 || rect.height === 0) return;
 
     const style = window.getComputedStyle(el);

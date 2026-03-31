@@ -4,9 +4,10 @@ import type {
   Finding,
 } from "@placeholder/shared";
 import { MIN_TOUCH_TARGET_PX } from "@placeholder/shared";
+import { getReliableSelector } from "./selector-utils";
 
-/** Minimum spacing between touch targets in px */
-const MIN_TOUCH_TARGET_SPACING = 8;
+/** Minimum spacing between touch targets in px — 4px is fine in most contexts */
+const MIN_TOUCH_TARGET_SPACING = 4;
 
 /**
  * Gets the effective clickable rect of an element, accounting for padding.
@@ -30,19 +31,8 @@ function rectDistance(a: DOMRect, b: DOMRect): number {
 /**
  * Generates a unique selector for an interactive element.
  */
-function getTargetSelector(el: Element, index: number): string {
-  if (el.id) return `#${CSS.escape(el.id)}`;
-  const parent = el.parentElement;
-  if (parent) {
-    const siblings = Array.from(parent.children).filter(
-      (s) => s.tagName === el.tagName
-    );
-    if (siblings.length > 1) {
-      const idx = siblings.indexOf(el) + 1;
-      return `${el.tagName.toLowerCase()}:nth-of-type(${idx})`;
-    }
-  }
-  return `${el.tagName.toLowerCase()}:nth-of-type(${index + 1})`;
+function getTargetSelector(el: Element, _index: number): string {
+  return getReliableSelector(el);
 }
 
 /**
@@ -56,6 +46,13 @@ function getTargetSelector(el: Element, index: number): string {
  * a problem for mobile users.
  */
 export function checkTouchTargets(): TouchTargetResult {
+  // Only flag touch targets if the page appears to be mobile-optimized (has viewport meta tag)
+  const viewportMeta = document.querySelector('meta[name="viewport"]');
+  if (!viewportMeta) {
+    // Desktop-only site — don't flag touch target issues
+    return { targets: [], failingCount: 0, findings: [] };
+  }
+
   const INTERACTIVE_SELECTORS = [
     "a[href]",
     "button",
@@ -90,7 +87,7 @@ export function checkTouchTargets(): TouchTargetResult {
   elements.forEach((el, index) => {
     const rect = getClickableRect(el);
 
-    // Skip hidden/off-screen elements
+    // Skip hidden elements (display:none, visibility:hidden, opacity:0)
     if (rect.width === 0 || rect.height === 0) return;
     const style = window.getComputedStyle(el);
     if (style.display === "none" || style.visibility === "hidden") return;
@@ -98,7 +95,7 @@ export function checkTouchTargets(): TouchTargetResult {
     // Skip elements fully off-screen
     if (rect.right < 0 || rect.bottom < 0) return;
 
-    // Skip negative tabindex (not focusable by user)
+    // Skip elements with tabindex="-1" (not user-focusable)
     const tabindex = el.getAttribute("tabindex");
     if (tabindex && parseInt(tabindex, 10) < 0) return;
 

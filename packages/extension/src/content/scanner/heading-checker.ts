@@ -1,4 +1,5 @@
 import type { HeadingInfo, HeadingResult, Finding } from "@placeholder/shared";
+import { getReliableSelector } from "./selector-utils";
 
 /**
  * Checks if an element is visually hidden.
@@ -37,19 +38,8 @@ function isAriaHidden(el: Element): boolean {
 /**
  * Generates a proper selector for a heading element.
  */
-function getHeadingSelector(el: Element, index: number): string {
-  if (el.id) return `#${CSS.escape(el.id)}`;
-  const parent = el.parentElement;
-  if (parent) {
-    const siblings = Array.from(parent.children).filter(
-      (s) => s.tagName === el.tagName
-    );
-    if (siblings.length > 1) {
-      const idx = siblings.indexOf(el) + 1;
-      return `${el.tagName.toLowerCase()}:nth-of-type(${idx})`;
-    }
-  }
-  return `${el.tagName.toLowerCase()}:nth-of-type(${index + 1})`;
+function getHeadingSelector(el: Element, _index: number): string {
+  return getReliableSelector(el);
 }
 
 /**
@@ -195,14 +185,22 @@ export function checkHeadings(): HeadingResult {
   }
 
   // Multiple H1s — warning, not critical (some frameworks like React use this)
+  // Downgrade to info on blog/article pages where CMSes commonly do this
   if (multipleH1s) {
+    const isBlogOrArticle = !!(
+      document.querySelector("article") ||
+      document.querySelector("[itemtype*='Article']") ||
+      document.querySelector("[itemtype*='BlogPosting']") ||
+      document.querySelector('meta[property="og:type"][content="article"]')
+    );
     findings.push({
       id: "heading-multiple-h1",
       scanner: "heading-checker",
-      severity: "warning",
+      severity: isBlogOrArticle ? "info" : "warning",
       title: "Multiple H1s",
-      description:
-        "Best practice is to have a single H1 per page. Multiple H1s can dilute the document structure, but some frameworks (React, sectioning elements) may use them intentionally.",
+      description: isBlogOrArticle
+        ? "Multiple H1s detected on a blog/article page. Many CMSes do this intentionally with sectioning elements."
+        : "Best practice is to have a single H1 per page. Multiple H1s can dilute the document structure, but some frameworks (React, sectioning elements) may use them intentionally.",
       selector: null,
       standard: "WCAG 1.3.1",
     });
@@ -228,18 +226,38 @@ export function checkHeadings(): HeadingResult {
     previousLevel = heading.level;
   }
 
-  // First heading is not H1
+  // First heading is not H1 — only flag if it's in main content area (not sidebar/nav)
   if (visibleHeadings.length > 0 && visibleHeadings[0].level !== 1) {
-    findings.push({
-      id: "heading-first-not-h1",
-      scanner: "heading-checker",
-      severity: "info",
-      title: "First heading not H1",
-      description:
-        "The first heading on the page should typically be an H1. Starting with a lower level heading may indicate a structural issue.",
-      selector: visibleHeadings[0].selector,
-      standard: "WCAG 1.3.1",
-    });
+    // Find the actual DOM element for the first heading to check its context
+    const firstHeadingSelector = visibleHeadings[0].selector;
+    let isInSidebarOrNav = false;
+    if (firstHeadingSelector) {
+      try {
+        const firstHeadingEl = document.querySelector(firstHeadingSelector);
+        if (firstHeadingEl) {
+          isInSidebarOrNav = !!(
+            firstHeadingEl.closest("nav") ||
+            firstHeadingEl.closest("aside") ||
+            firstHeadingEl.closest("[role='navigation']") ||
+            firstHeadingEl.closest("[role='complementary']")
+          );
+        }
+      } catch {
+        // Invalid selector — skip context check
+      }
+    }
+    if (!isInSidebarOrNav) {
+      findings.push({
+        id: "heading-first-not-h1",
+        scanner: "heading-checker",
+        severity: "info",
+        title: "First heading not H1",
+        description:
+          "The first heading on the page should typically be an H1. Starting with a lower level heading may indicate a structural issue.",
+        selector: visibleHeadings[0].selector,
+        standard: "WCAG 1.3.1",
+      });
+    }
   }
 
   // Detect non-heading elements styled as headings

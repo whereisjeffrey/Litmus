@@ -1,21 +1,11 @@
 import type { LinkInfo, LinkResult, Finding } from "@placeholder/shared";
+import { getReliableSelector } from "./selector-utils";
 
 /**
  * Generates a proper selector for a link element.
  */
-function getLinkSelector(a: HTMLAnchorElement, index: number): string {
-  if (a.id) return `#${CSS.escape(a.id)}`;
-  const parent = a.parentElement;
-  if (parent) {
-    const siblings = Array.from(parent.querySelectorAll("a"));
-    if (siblings.length > 1) {
-      const idx = siblings.indexOf(a) + 1;
-      if (parent.id) {
-        return `#${CSS.escape(parent.id)} > a:nth-of-type(${idx})`;
-      }
-    }
-  }
-  return `a:nth-of-type(${index + 1})`;
+function getLinkSelector(a: HTMLAnchorElement, _index: number): string {
+  return getReliableSelector(a);
 }
 
 /**
@@ -39,6 +29,9 @@ export function validateLinks(): LinkResult {
   let emptyLinks = 0;
 
   anchors.forEach((a, index) => {
+    // Skip links inside <noscript> tags
+    if (a.closest("noscript")) return;
+
     const href = a.getAttribute("href") ?? "";
     const text = (a.textContent || "").trim();
     const selector = getLinkSelector(a, index);
@@ -118,6 +111,26 @@ export function validateLinks(): LinkResult {
       });
     }
 
+    // Flag href="#" — downgrade to info if element has click handlers (common pattern)
+    if (href === "#" && !href.startsWith("javascript:")) {
+      const hasClickHandler = a.hasAttribute("onclick") ||
+        a.getAttribute("role") === "button" ||
+        a.hasAttribute("ng-click") ||
+        a.hasAttribute("@click") ||
+        a.hasAttribute("v-on:click");
+      if (hasClickHandler) {
+        findings.push({
+          id: `link-hash-click-${index}`,
+          scanner: "link-validator",
+          severity: "info",
+          title: "Hash link with handler",
+          description: `Link uses href="#" with a click handler. Consider using a <button> element instead for better semantics. Text: "${text.slice(0, 50) || "(no text)"}"`,
+          selector,
+          standard: null,
+        });
+      }
+    }
+
     // Flag broken anchor links
     if (isBrokenAnchor) {
       findings.push({
@@ -131,14 +144,14 @@ export function validateLinks(): LinkResult {
       });
     }
 
-    // Flag links with no accessible text
+    // Flag links with no accessible text (skip tel: and mailto: links — they're already accessible)
     const ariaLabel = a.getAttribute("aria-label") || "";
     const ariaLabelledBy = a.getAttribute("aria-labelledby") || "";
     const title = a.getAttribute("title") || "";
     const imgAlt = a.querySelector("img")?.getAttribute("alt") || "";
     const svgTitle = a.querySelector("svg title")?.textContent || "";
 
-    if (!text && !ariaLabel && !ariaLabelledBy && !title && !imgAlt && !svgTitle) {
+    if (!isProtocolLink && !text && !ariaLabel && !ariaLabelledBy && !title && !imgAlt && !svgTitle) {
       findings.push({
         id: `link-notext-${index}`,
         scanner: "link-validator",
@@ -151,7 +164,8 @@ export function validateLinks(): LinkResult {
       });
     }
 
-    // Flag generic link text
+    // Flag generic link text — skip links inside <nav> (navigation links like "Home", "About" are fine)
+    const isInsideNav = !!a.closest("nav, [role='navigation']");
     const genericTexts = [
       "click here",
       "here",
@@ -160,7 +174,7 @@ export function validateLinks(): LinkResult {
       "learn more",
       "link",
     ];
-    if (genericTexts.includes(text.toLowerCase())) {
+    if (!isInsideNav && genericTexts.includes(text.toLowerCase())) {
       findings.push({
         id: `link-generic-${index}`,
         scanner: "link-validator",

@@ -1,51 +1,7 @@
 import type { CrawledElement, CrawlResult } from "@placeholder/shared";
+import { getReliableSelector } from "./selector-utils";
 
 const SCAN_TIMEOUT_MS = 5000;
-
-/**
- * Generates a unique CSS selector for an element.
- */
-function getSelector(el: Element): string {
-  if (el.id) return `#${CSS.escape(el.id)}`;
-
-  const parts: string[] = [];
-  let current: Element | null = el;
-
-  while (current && current !== document.documentElement) {
-    let selector = current.tagName.toLowerCase();
-
-    if (current.id) {
-      parts.unshift(`#${CSS.escape(current.id)}`);
-      break;
-    }
-
-    if (current.className && typeof current.className === "string") {
-      const classes = current.className
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((c) => `.${CSS.escape(c)}`)
-        .join("");
-      selector += classes;
-    }
-
-    const parent = current.parentElement;
-    if (parent) {
-      const siblings = Array.from(parent.children).filter(
-        (s) => s.tagName === current!.tagName
-      );
-      if (siblings.length > 1) {
-        const index = siblings.indexOf(current) + 1;
-        selector += `:nth-of-type(${index})`;
-      }
-    }
-
-    parts.unshift(selector);
-    current = current.parentElement;
-  }
-
-  return parts.join(" > ");
-}
 
 /**
  * Checks whether an element is visible (not hidden via CSS or zero-size).
@@ -156,7 +112,7 @@ function crawlRoot(
         height: rect.height,
       },
       childrenCount: el.children.length,
-      selector: getSelector(el),
+      selector: getReliableSelector(el),
       isVisible: visible,
       inShadowDOM,
       iframeOrigin,

@@ -1,4 +1,5 @@
 import type { ImageInfo, ImageResult, Finding } from "@placeholder/shared";
+import { getReliableSelector } from "./selector-utils";
 
 /**
  * Common filename patterns that indicate the alt text is just a filename.
@@ -23,16 +24,6 @@ const REDUNDANT_ALT = new Set([
 ]);
 
 /**
- * Generates a unique selector for an image element.
- */
-function getImgSelector(img: HTMLImageElement, index: number): string {
-  if (img.id) return `#${CSS.escape(img.id)}`;
-  const src = img.getAttribute("src") || "";
-  if (src) return `img[src="${CSS.escape(src.slice(0, 80))}"]`;
-  return `img:nth-of-type(${index + 1})`;
-}
-
-/**
  * Audits all images on the page for alt text quality, sizing, lazy loading,
  * SVG accessibility, linked images, and responsive image attributes.
  */
@@ -49,7 +40,10 @@ export function auditImages(): ImageResult {
     const hasAlt = alt !== null;
     const altText = alt || "";
     const rect = img.getBoundingClientRect();
-    const selector = getImgSelector(img, index);
+    const selector = getReliableSelector(img);
+
+    // Skip images inside <noscript> tags
+    if (img.closest("noscript")) return;
 
     // Skip trivial images: tracking pixels, spacers, invisible images
     const isTrivialImage =
@@ -64,6 +58,11 @@ export function auditImages(): ImageResult {
 
     if (isTrivialImage) return; // skip entirely — don't report findings for trivial images
 
+    // Skip decorative images from alt text checks
+    const isDecorativeRole =
+      img.getAttribute("role") === "presentation" ||
+      img.getAttribute("aria-hidden") === "true";
+
     // Check if this image is inside a link
     const isLinkedImage = !!img.closest("a");
 
@@ -73,7 +72,7 @@ export function auditImages(): ImageResult {
     // Check if alt is redundant/generic
     const altIsRedundant = REDUNDANT_ALT.has(altText.trim().toLowerCase());
 
-    // Oversized check: natural size > 2x the display size
+    // Oversized check: natural size > 3x the display size (2x is normal for retina)
     const naturalWidth = img.naturalWidth || 0;
     const naturalHeight = img.naturalHeight || 0;
     const displayWidth = rect.width;
@@ -81,8 +80,8 @@ export function auditImages(): ImageResult {
     const isOversized =
       displayWidth > 0 &&
       displayHeight > 0 &&
-      naturalWidth > displayWidth * 2 &&
-      naturalHeight > displayHeight * 2;
+      naturalWidth > displayWidth * 3 &&
+      naturalHeight > displayHeight * 3;
 
     // Lazy loading check
     const hasLazyLoading = img.loading === "lazy";
@@ -115,7 +114,7 @@ export function auditImages(): ImageResult {
     images.push(info);
 
     // === Critical: Linked image without alt text ===
-    if (isLinkedImage && !hasAlt) {
+    if (isLinkedImage && !hasAlt && !isDecorativeRole) {
       missingAltCount++;
       const link = img.closest("a")!;
       const linkText = (link.textContent || "").trim();
@@ -134,8 +133,8 @@ export function auditImages(): ImageResult {
       }
     }
 
-    // Missing alt attribute entirely
-    if (!hasAlt) {
+    // Missing alt attribute entirely (skip decorative images)
+    if (!hasAlt && !isDecorativeRole) {
       missingAltCount++;
       findings.push({
         id: `img-noalt-${index}`,
@@ -193,6 +192,7 @@ export function auditImages(): ImageResult {
 
     // Only report lazy loading issues for meaningful images (at least 50x50 pixels)
     const isMeaningfulSize = displayWidth >= 50 && displayHeight >= 50;
+    const hasFetchPriorityHigh = img.getAttribute("fetchpriority") === "high";
 
     // Above-fold images should NOT be lazy loaded
     if (isAboveFold && hasLazyLoading && isMeaningfulSize) {
@@ -209,7 +209,8 @@ export function auditImages(): ImageResult {
     }
 
     // Below-fold images without lazy loading — only flag large images
-    if (!isAboveFold && !hasLazyLoading && isMeaningfulSize && displayWidth >= 200) {
+    // Don't flag images with fetchpriority="high" — they're already optimized
+    if (!isAboveFold && !hasLazyLoading && !hasFetchPriorityHigh && isMeaningfulSize && displayWidth >= 200) {
       findings.push({
         id: `img-nolazy-${index}`,
         scanner: "image-auditor",
@@ -244,45 +245,58 @@ export function auditImages(): ImageResult {
     const ariaLabelledBy = svg.getAttribute("aria-labelledby");
     const titleEl = svg.querySelector("title");
     const ariaHidden = svg.getAttribute("aria-hidden");
-    const selector = svg.id
-      ? `#${CSS.escape(svg.id)}`
-      : `svg:nth-of-type(${index + 1})`;
+    const selector = getReliableSelector(svg);
+
+    // Skip SVGs inside <noscript> tags
+    if (svg.closest("noscript")) return;
 
     // Skip decorative SVGs that are properly marked
     if (ariaHidden === "true") return;
+
+    // Skip SVGs inside buttons or links that already have text (the SVG is decorative)
+    const interactiveParent = svg.closest("a, button, [role='button']");
+    const interactiveParentText = interactiveParent
+      ? (interactiveParent.textContent || "").trim()
+      : "";
+    if (interactiveParent && interactiveParentText) {
+      // Track in images array but don't flag — it's decorative alongside text
+      const rect = svg.getBoundingClientRect();
+      images.push({
+        src: "",
+        alt: ariaLabel || titleEl?.textContent || "",
+        selector,
+        hasAlt: true, // effectively decorative, not a problem
+        altIsFilename: false,
+        altIsRedundant: false,
+        naturalWidth: 0,
+        naturalHeight: 0,
+        displayWidth: Math.round(rect.width),
+        displayHeight: Math.round(rect.height),
+        isOversized: false,
+        hasLazyLoading: false,
+        isAboveFold: rect.top < window.innerHeight && rect.top >= 0,
+        isLinkedImage: !!svg.closest("a"),
+        isSvg: true,
+        hasSrcset: false,
+      });
+      return;
+    }
 
     // SVG with no accessible name and no aria-hidden
     const hasAccessibleName = !!(ariaLabel || ariaLabelledBy || titleEl);
     const hasImgRole = role === "img";
 
     if (!hasAccessibleName && !hasImgRole) {
-      // Check if it seems decorative (small, inside a button/link that has text)
-      const parent = svg.closest("a, button, [role='button']");
-      const parentText = parent ? (parent.textContent || "").trim() : "";
-      if (parent && parentText) {
-        // Likely decorative icon next to text — just needs aria-hidden
-        findings.push({
-          id: `svg-no-ariahidden-${index}`,
-          scanner: "image-auditor",
-          severity: "info",
-          title: "Decorative SVG not hidden",
-          description:
-            "This SVG appears decorative (inside an interactive element with text). Add aria-hidden=\"true\" to hide it from screen readers.",
-          selector,
-          standard: "WCAG 1.1.1",
-        });
-      } else {
-        findings.push({
-          id: `svg-no-accessible-name-${index}`,
-          scanner: "image-auditor",
-          severity: "warning",
-          title: "SVG no accessible name",
-          description:
-            "This SVG has no role=\"img\", aria-label, aria-labelledby, or <title> element. If informative, add role=\"img\" and an aria-label. If decorative, add aria-hidden=\"true\".",
-          selector,
-          standard: "WCAG 1.1.1",
-        });
-      }
+      findings.push({
+        id: `svg-no-accessible-name-${index}`,
+        scanner: "image-auditor",
+        severity: "warning",
+        title: "SVG no accessible name",
+        description:
+          "This SVG has no role=\"img\", aria-label, aria-labelledby, or <title> element. If informative, add role=\"img\" and an aria-label. If decorative, add aria-hidden=\"true\".",
+        selector,
+        standard: "WCAG 1.1.1",
+      });
     } else if (hasImgRole && !hasAccessibleName) {
       findings.push({
         id: `svg-role-no-label-${index}`,
@@ -339,7 +353,7 @@ export function auditImages(): ImageResult {
           severity: "info",
           title: "Background image info",
           description: `This element uses a CSS background image and appears to convey content. If informative, add role="img" and aria-label. Element: <${el.tagName.toLowerCase()}>.`,
-          selector: el.id ? `#${CSS.escape(el.id)}` : el.tagName.toLowerCase(),
+          selector: getReliableSelector(el),
           standard: "WCAG 1.1.1",
         });
       }

@@ -4,6 +4,7 @@ import type {
   FormResult,
   Finding,
 } from "@placeholder/shared";
+import { getReliableSelector } from "./selector-utils";
 
 /**
  * Maps common input names/types to their expected autocomplete token.
@@ -36,10 +37,7 @@ const AUTOCOMPLETE_MAP: Record<string, string> = {
 };
 
 function getSelector(el: Element): string {
-  if (el.id) return `#${CSS.escape(el.id)}`;
-  const name = el.getAttribute("name");
-  if (name) return `${el.tagName.toLowerCase()}[name="${name}"]`;
-  return el.tagName.toLowerCase();
+  return getReliableSelector(el);
 }
 
 /**
