@@ -7,6 +7,7 @@ import ScoreGauge from "./components/ScoreGauge";
 import PlaceholderBox from "./components/PlaceholderBox";
 import HookLine from "./components/HookLine";
 import CategoryAccordion from "./components/CategoryAccordion";
+import { apiClient } from "./lib/api-client";
 
 const CATEGORY_COLORS: Record<string, string> = {
   Accessibility: "#93C5FD",
@@ -48,6 +49,9 @@ export default function App() {
         case "SCAN_COMPLETE":
           setScanResult(message.result);
           setState("complete");
+          // Fire-and-forget: save scan to API if user is logged in
+          // TODO: pass actual access token once auth is wired up
+          apiClient.saveScan(message.result).catch(() => {});
           break;
         case "SCAN_ERROR":
           setError(message.error);

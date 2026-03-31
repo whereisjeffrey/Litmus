@@ -1,0 +1,625 @@
+/**
+ * Headless scanning script using Playwright.
+ *
+ * Usage:
+ *   npx tsx packages/api/src/scripts/headless-scan.ts --urls https://stripe.com,https://linear.app
+ *   npx tsx packages/api/src/scripts/headless-scan.ts --file urls.json
+ *
+ * Output: results saved to scan-results.json
+ */
+
+import { chromium } from "playwright";
+import * as fs from "fs";
+import * as path from "path";
+
+const URLS_DEFAULT = [
+  "https://stripe.com",
+  "https://linear.app",
+  "https://vercel.com",
+  "https://github.com",
+  "https://notion.so",
+];
+
+// Weight config matching shared/constants SCORE_WEIGHTS
+const SCORE_WEIGHTS = {
+  accessibility: 0.25,
+  uxHeuristics: 0.3,
+  forms: 0.15,
+  content: 0.1,
+  visualConsistency: 0.1,
+  performanceUx: 0.1,
+};
+
+interface HeadlessScanResult {
+  url: string;
+  timestamp: number;
+  score: number;
+  categories: Record<string, { score: number; findingsCount: number }>;
+  findings: Array<{
+    scanner: string;
+    severity: "critical" | "warning" | "info";
+    title: string;
+    description: string;
+  }>;
+  meta: {
+    title: string | null;
+    description: string | null;
+    hasViewport: boolean;
+    hasOgTags: boolean;
+    lang: string | null;
+  };
+  stats: {
+    totalImages: number;
+    imagesWithoutAlt: number;
+    totalLinks: number;
+    placeholderLinks: number;
+    totalForms: number;
+    fieldsWithoutLabels: number;
+    headingCount: number;
+    consoleErrors: number;
+  };
+  error?: string;
+}
+
+async function scanUrl(url: string): Promise<HeadlessScanResult> {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    userAgent:
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  });
+  const page = await context.newPage();
+
+  // Collect console errors during page load
+  const consoleErrors: string[] = [];
+  page.on("console", (msg) => {
+    if (msg.type() === "error") {
+      consoleErrors.push(msg.text());
+    }
+  });
+  page.on("pageerror", (err) => {
+    consoleErrors.push(String(err));
+  });
+
+  try {
+    await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
+
+    // Wait a short moment for any lazy-loaded content
+    await page.waitForTimeout(1000);
+
+    const results = await page.evaluate(() => {
+      const findings: Array<{
+        scanner: string;
+        severity: "critical" | "warning" | "info";
+        title: string;
+        description: string;
+      }> = [];
+
+      // ── Image alt text ──────────────────────────────────────────
+      const images = Array.from(document.querySelectorAll("img"));
+      let imagesWithoutAlt = 0;
+      for (const img of images) {
+        const alt = img.getAttribute("alt");
+        if (alt === null || alt === undefined) {
+          imagesWithoutAlt++;
+          findings.push({
+            scanner: "image-auditor",
+            severity: "critical",
+            title: "Image missing alt text",
+            description: `Image ${img.src ? img.src.slice(0, 80) : "(no src)"} has no alt attribute.`,
+          });
+        } else if (alt.trim() === "") {
+          // Empty alt is intentional (decorative) — but flag if it looks like content
+          const isLarge =
+            img.getBoundingClientRect().width > 100 &&
+            img.getBoundingClientRect().height > 100;
+          if (isLarge) {
+            findings.push({
+              scanner: "image-auditor",
+              severity: "warning",
+              title: "Large image with empty alt",
+              description: `A large image has empty alt text. If it conveys content, it needs a description.`,
+            });
+          }
+        }
+      }
+
+      // ── Heading hierarchy ───────────────────────────────────────
+      const headings = Array.from(
+        document.querySelectorAll("h1, h2, h3, h4, h5, h6")
+      );
+      const headingLevels = headings.map((h) =>
+        parseInt(h.tagName.charAt(1), 10)
+      );
+      const h1Count = headingLevels.filter((l) => l === 1).length;
+
+      if (h1Count === 0) {
+        findings.push({
+          scanner: "heading-checker",
+          severity: "warning",
+          title: "No H1 heading found",
+          description:
+            "Every page should have exactly one H1 heading for accessibility and SEO.",
+        });
+      } else if (h1Count > 1) {
+        findings.push({
+          scanner: "heading-checker",
+          severity: "warning",
+          title: "Multiple H1 headings",
+          description: `Found ${h1Count} H1 headings. Pages should typically have exactly one.`,
+        });
+      }
+
+      // Check for skipped levels
+      for (let i = 1; i < headingLevels.length; i++) {
+        if (headingLevels[i] - headingLevels[i - 1] > 1) {
+          findings.push({
+            scanner: "heading-checker",
+            severity: "warning",
+            title: `Heading level skipped (H${headingLevels[i - 1]} to H${headingLevels[i]})`,
+            description: `Heading hierarchy should not skip levels for proper document structure.`,
+          });
+          break; // Only report first skip
+        }
+      }
+
+      // ── Meta tags ───────────────────────────────────────────────
+      const title = document.title || null;
+      const descriptionEl = document.querySelector(
+        'meta[name="description"]'
+      ) as HTMLMetaElement | null;
+      const description = descriptionEl?.content || null;
+      const hasViewport = !!document.querySelector('meta[name="viewport"]');
+      const ogTitle = document
+        .querySelector('meta[property="og:title"]')
+        ?.getAttribute("content");
+      const ogImage = document
+        .querySelector('meta[property="og:image"]')
+        ?.getAttribute("content");
+      const hasOgTags = !!(ogTitle || ogImage);
+      const lang = document.documentElement.getAttribute("lang");
+
+      if (!title) {
+        findings.push({
+          scanner: "meta-checker",
+          severity: "critical",
+          title: "Missing page title",
+          description: "The page has no <title> tag.",
+        });
+      } else if (title.length > 60) {
+        findings.push({
+          scanner: "meta-checker",
+          severity: "info",
+          title: "Title may be too long",
+          description: `Title is ${title.length} characters. Search engines typically display ~60.`,
+        });
+      }
+
+      if (!description) {
+        findings.push({
+          scanner: "meta-checker",
+          severity: "warning",
+          title: "Missing meta description",
+          description:
+            "No meta description found. This impacts SEO and social sharing.",
+        });
+      }
+
+      if (!hasViewport) {
+        findings.push({
+          scanner: "meta-checker",
+          severity: "critical",
+          title: "Missing viewport meta tag",
+          description:
+            "Without a viewport meta tag, the page may not render properly on mobile.",
+        });
+      }
+
+      if (!hasOgTags) {
+        findings.push({
+          scanner: "meta-checker",
+          severity: "info",
+          title: "Missing Open Graph tags",
+          description:
+            "No og:title or og:image found. Social sharing previews will be generic.",
+        });
+      }
+
+      if (!lang) {
+        findings.push({
+          scanner: "meta-checker",
+          severity: "warning",
+          title: "Missing lang attribute",
+          description:
+            'The <html> element should have a lang attribute (e.g., lang="en").',
+        });
+      }
+
+      // ── Links ───────────────────────────────────────────────────
+      const allLinks = Array.from(document.querySelectorAll("a"));
+      let placeholderLinks = 0;
+      for (const link of allLinks) {
+        const href = link.getAttribute("href");
+        if (
+          !href ||
+          href === "#" ||
+          href === "javascript:void(0)" ||
+          href === "javascript:;"
+        ) {
+          placeholderLinks++;
+          if (placeholderLinks <= 5) {
+            findings.push({
+              scanner: "link-validator",
+              severity: "warning",
+              title: "Placeholder link found",
+              description: `Link "${(link.textContent || "").trim().slice(0, 40)}" has href="${href || "(empty)}".`,
+            });
+          }
+        }
+      }
+      if (placeholderLinks > 5) {
+        findings.push({
+          scanner: "link-validator",
+          severity: "warning",
+          title: `${placeholderLinks - 5} more placeholder links`,
+          description: `Found ${placeholderLinks} total placeholder links on the page.`,
+        });
+      }
+
+      // ── Forms & labels ──────────────────────────────────────────
+      const forms = Array.from(document.querySelectorAll("form"));
+      const allInputs = Array.from(
+        document.querySelectorAll(
+          "input:not([type=hidden]):not([type=submit]):not([type=button]), select, textarea"
+        )
+      );
+      let fieldsWithoutLabels = 0;
+
+      for (const input of allInputs) {
+        const hasLabel =
+          !!input.getAttribute("aria-label") ||
+          !!input.getAttribute("aria-labelledby") ||
+          !!(input.id &&
+            document.querySelector(`label[for="${input.id}"]`)) ||
+          !!input.closest("label");
+
+        if (!hasLabel) {
+          fieldsWithoutLabels++;
+          if (fieldsWithoutLabels <= 3) {
+            findings.push({
+              scanner: "form-analyzer",
+              severity: "critical",
+              title: "Form field missing label",
+              description: `An ${input.tagName.toLowerCase()} field (${input.getAttribute("name") || input.getAttribute("type") || "unknown"}) has no associated label.`,
+            });
+          }
+        }
+      }
+      if (fieldsWithoutLabels > 3) {
+        findings.push({
+          scanner: "form-analyzer",
+          severity: "critical",
+          title: `${fieldsWithoutLabels - 3} more fields missing labels`,
+          description: `Found ${fieldsWithoutLabels} total form fields without labels.`,
+        });
+      }
+
+      // ── Touch target sizes ──────────────────────────────────────
+      const interactiveEls = Array.from(
+        document.querySelectorAll(
+          'a, button, input, select, textarea, [role="button"], [tabindex]'
+        )
+      );
+      let smallTargets = 0;
+      for (const el of interactiveEls) {
+        const rect = el.getBoundingClientRect();
+        if (
+          rect.width > 0 &&
+          rect.height > 0 &&
+          (rect.width < 44 || rect.height < 44)
+        ) {
+          // Only count visible elements
+          const style = getComputedStyle(el);
+          if (
+            style.display !== "none" &&
+            style.visibility !== "hidden" &&
+            parseFloat(style.opacity) > 0
+          ) {
+            smallTargets++;
+          }
+        }
+      }
+      if (smallTargets > 0) {
+        findings.push({
+          scanner: "touch-targets",
+          severity: smallTargets > 10 ? "warning" : "info",
+          title: `${smallTargets} small touch targets`,
+          description: `${smallTargets} interactive elements are smaller than the recommended 44x44px minimum.`,
+        });
+      }
+
+      // ── Basic contrast check (sampling) ─────────────────────────
+      const textElements = Array.from(
+        document.querySelectorAll("p, span, a, li, td, th, label, h1, h2, h3, h4, h5, h6")
+      ).slice(0, 100); // Sample up to 100 elements
+
+      let contrastFailures = 0;
+      for (const el of textElements) {
+        const style = getComputedStyle(el);
+        if (
+          style.display === "none" ||
+          style.visibility === "hidden" ||
+          !el.textContent?.trim()
+        ) {
+          continue;
+        }
+
+        // Parse colors to RGB
+        const fgMatch = style.color.match(
+          /rgba?\((\d+),\s*(\d+),\s*(\d+)/
+        );
+        const bgMatch = style.backgroundColor.match(
+          /rgba?\((\d+),\s*(\d+),\s*(\d+)/
+        );
+
+        if (fgMatch && bgMatch) {
+          const fgLum = relativeLuminance(
+            parseInt(fgMatch[1]),
+            parseInt(fgMatch[2]),
+            parseInt(fgMatch[3])
+          );
+          const bgLum = relativeLuminance(
+            parseInt(bgMatch[1]),
+            parseInt(bgMatch[2]),
+            parseInt(bgMatch[3])
+          );
+
+          const ratio =
+            (Math.max(fgLum, bgLum) + 0.05) /
+            (Math.min(fgLum, bgLum) + 0.05);
+
+          const fontSize = parseFloat(style.fontSize);
+          const fontWeight = parseInt(style.fontWeight) || 400;
+          const isLargeText =
+            fontSize >= 18 || (fontSize >= 14 && fontWeight >= 700);
+          const required = isLargeText ? 3.0 : 4.5;
+
+          if (ratio < required) {
+            contrastFailures++;
+          }
+        }
+      }
+
+      if (contrastFailures > 0) {
+        findings.push({
+          scanner: "contrast-checker",
+          severity: contrastFailures > 5 ? "critical" : "warning",
+          title: `${contrastFailures} contrast issues found`,
+          description: `${contrastFailures} text elements (sampled) do not meet WCAG AA contrast requirements.`,
+        });
+      }
+
+      // Helper: relative luminance per WCAG
+      function relativeLuminance(r: number, g: number, b: number): number {
+        const [rs, gs, bs] = [r / 255, g / 255, b / 255].map((c) =>
+          c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+        );
+        return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+      }
+
+      return {
+        findings,
+        meta: {
+          title,
+          description,
+          hasViewport,
+          hasOgTags,
+          lang,
+        },
+        stats: {
+          totalImages: images.length,
+          imagesWithoutAlt,
+          totalLinks: allLinks.length,
+          placeholderLinks,
+          totalForms: forms.length,
+          fieldsWithoutLabels,
+          headingCount: headings.length,
+        },
+      };
+    });
+
+    // Add console errors from Playwright listeners
+    if (consoleErrors.length > 0) {
+      results.findings.push({
+        scanner: "console-capture",
+        severity: consoleErrors.length > 5 ? "warning" : "info",
+        title: `${consoleErrors.length} console error(s)`,
+        description: `Page produced ${consoleErrors.length} console errors during load.`,
+      });
+    }
+
+    // Compute score using the weighting system
+    const categoryScores = computeCategoryScores(results.findings);
+    const score = Math.round(
+      Object.entries(categoryScores).reduce(
+        (sum, [, cat]) => sum + cat.score * cat.weight,
+        0
+      )
+    );
+
+    return {
+      url,
+      timestamp: Date.now(),
+      score,
+      categories: Object.fromEntries(
+        Object.entries(categoryScores).map(([name, cat]) => [
+          name,
+          { score: cat.score, findingsCount: cat.findingsCount },
+        ])
+      ),
+      findings: results.findings,
+      meta: results.meta,
+      stats: {
+        ...results.stats,
+        consoleErrors: consoleErrors.length,
+      },
+    };
+  } catch (err) {
+    return {
+      url,
+      timestamp: Date.now(),
+      score: 0,
+      categories: {},
+      findings: [],
+      meta: {
+        title: null,
+        description: null,
+        hasViewport: false,
+        hasOgTags: false,
+        lang: null,
+      },
+      stats: {
+        totalImages: 0,
+        imagesWithoutAlt: 0,
+        totalLinks: 0,
+        placeholderLinks: 0,
+        totalForms: 0,
+        fieldsWithoutLabels: 0,
+        headingCount: 0,
+        consoleErrors: 0,
+      },
+      error: String(err),
+    };
+  } finally {
+    await browser.close();
+  }
+}
+
+function computeCategoryScores(
+  findings: Array<{ scanner: string; severity: string }>
+): Record<string, { score: number; weight: number; findingsCount: number }> {
+  const categoryMap: Record<
+    string,
+    { scanners: string[]; weight: number }
+  > = {
+    Accessibility: {
+      scanners: ["contrast-checker", "heading-checker", "image-auditor"],
+      weight: SCORE_WEIGHTS.accessibility,
+    },
+    "UX Heuristics": {
+      scanners: ["link-validator", "touch-targets"],
+      weight: SCORE_WEIGHTS.uxHeuristics,
+    },
+    Forms: {
+      scanners: ["form-analyzer"],
+      weight: SCORE_WEIGHTS.forms,
+    },
+    Content: {
+      scanners: ["meta-checker"],
+      weight: SCORE_WEIGHTS.content,
+    },
+    "Visual Consistency": {
+      scanners: ["image-auditor"],
+      weight: SCORE_WEIGHTS.visualConsistency,
+    },
+    "Performance UX": {
+      scanners: ["console-capture"],
+      weight: SCORE_WEIGHTS.performanceUx,
+    },
+  };
+
+  const result: Record<
+    string,
+    { score: number; weight: number; findingsCount: number }
+  > = {};
+
+  for (const [name, { scanners, weight }] of Object.entries(categoryMap)) {
+    const relevant = findings.filter((f) => scanners.includes(f.scanner));
+    let deductions = 0;
+    for (const f of relevant) {
+      switch (f.severity) {
+        case "critical":
+          deductions += 15;
+          break;
+        case "warning":
+          deductions += 7;
+          break;
+        case "info":
+          deductions += 2;
+          break;
+      }
+    }
+    const score = Math.max(0, Math.min(100, 100 - deductions));
+    result[name] = { score, weight, findingsCount: relevant.length };
+  }
+
+  return result;
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  let urls = URLS_DEFAULT;
+
+  // Parse --urls flag
+  const urlsIndex = args.indexOf("--urls");
+  if (urlsIndex !== -1 && args[urlsIndex + 1]) {
+    urls = args[urlsIndex + 1].split(",");
+  }
+
+  // Parse --file flag
+  const fileIndex = args.indexOf("--file");
+  if (fileIndex !== -1 && args[fileIndex + 1]) {
+    const filePath = path.resolve(args[fileIndex + 1]);
+    const fileContent = fs.readFileSync(filePath, "utf-8");
+    urls = JSON.parse(fileContent);
+  }
+
+  // Parse --output flag
+  let outputFile = "scan-results.json";
+  const outputIndex = args.indexOf("--output");
+  if (outputIndex !== -1 && args[outputIndex + 1]) {
+    outputFile = args[outputIndex + 1];
+  }
+
+  console.log(`Scanning ${urls.length} URLs...\n`);
+
+  const results: HeadlessScanResult[] = [];
+  for (const url of urls) {
+    console.log(`  Scanning: ${url}`);
+    const startTime = Date.now();
+    const result = await scanUrl(url);
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    results.push(result);
+
+    if (result.error) {
+      console.log(`    Error: ${result.error}`);
+    } else {
+      console.log(
+        `    Score: ${result.score}/100 | ` +
+          `Findings: ${result.findings.length} | ` +
+          `Time: ${elapsed}s`
+      );
+    }
+  }
+
+  // Summary
+  const successful = results.filter((r) => !r.error);
+  if (successful.length > 0) {
+    const scores = successful.map((r) => r.score);
+    const avg = Math.round(
+      scores.reduce((a, b) => a + b, 0) / scores.length
+    );
+    const min = Math.min(...scores);
+    const max = Math.max(...scores);
+
+    console.log(`\n--- Summary ---`);
+    console.log(`Scanned: ${results.length} URLs (${successful.length} successful)`);
+    console.log(`Scores: avg=${avg}, min=${min}, max=${max}`);
+  }
+
+  // Write results
+  fs.writeFileSync(outputFile, JSON.stringify(results, null, 2));
+  console.log(`\nResults saved to ${outputFile}`);
+}
+
+main().catch(console.error);

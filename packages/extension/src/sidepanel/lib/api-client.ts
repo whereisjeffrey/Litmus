@@ -1,0 +1,65 @@
+import type { ScanResult } from "@placeholder/shared";
+
+const API_BASE = "http://localhost:3001"; // Will be configurable later
+
+export const apiClient = {
+  async saveScan(
+    scanResult: ScanResult,
+    accessToken?: string
+  ): Promise<{ id: string } | null> {
+    // If no access token, user isn't logged in — silently skip
+    if (!accessToken) return null;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/scan/save`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          url: scanResult.url,
+          pageType: scanResult.pageType,
+          overallScore: scanResult.overallScore,
+          viewportMode: "desktop", // TODO: get from state
+          categoryScores: scanResult.categories,
+          aiAnalysis: scanResult.aiAnalysis,
+          findings: scanResult.allFindings,
+        }),
+      });
+
+      if (!response.ok) return null;
+      return response.json();
+    } catch {
+      // API not available — silently fail (extension works offline)
+      return null;
+    }
+  },
+
+  async getHistory(accessToken: string, limit = 20, offset = 0) {
+    try {
+      const response = await fetch(
+        `${API_BASE}/api/scan/history?limit=${limit}&offset=${offset}`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      if (!response.ok) return null;
+      return response.json();
+    } catch {
+      return null;
+    }
+  },
+
+  async getScan(scanId: string, accessToken: string) {
+    try {
+      const response = await fetch(`${API_BASE}/api/scan/${scanId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!response.ok) return null;
+      return response.json();
+    } catch {
+      return null;
+    }
+  },
+};
