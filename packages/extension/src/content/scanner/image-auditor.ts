@@ -51,6 +51,19 @@ export function auditImages(): ImageResult {
     const rect = img.getBoundingClientRect();
     const selector = getImgSelector(img, index);
 
+    // Skip trivial images: tracking pixels, spacers, invisible images
+    const isTrivialImage =
+      (rect.width <= 5 && rect.height <= 5) ||       // 1x1 pixels, tiny spacers
+      (rect.width === 0 || rect.height === 0) ||      // invisible
+      (img.naturalWidth <= 5 && img.naturalHeight <= 5) || // actual tiny image
+      src.includes("pixel") ||                         // tracking pixel URLs
+      src.includes("tracker") ||
+      src.includes("beacon") ||
+      src.includes("spacer") ||
+      src.startsWith("data:image/gif;base64,R0lGOD"); // common 1x1 transparent GIF
+
+    if (isTrivialImage) return; // skip entirely — don't report findings for trivial images
+
     // Check if this image is inside a link
     const isLinkedImage = !!img.closest("a");
 
@@ -112,7 +125,7 @@ export function auditImages(): ImageResult {
           id: `img-linked-noalt-${index}`,
           scanner: "image-auditor",
           severity: "critical",
-          title: "Linked image missing alt text",
+          title: "Linked image no alt text",
           description: `An image inside a link has no alt attribute, and the link has no other text. This makes the link inaccessible to screen reader users.`,
           selector,
           standard: "WCAG 1.1.1",
@@ -128,7 +141,7 @@ export function auditImages(): ImageResult {
         id: `img-noalt-${index}`,
         scanner: "image-auditor",
         severity: "critical",
-        title: "Image missing alt attribute",
+        title: "Missing alt text",
         description: `An image${src ? ` (src: ...${src.slice(-40)})` : ""} has no alt attribute. If decorative, use alt="". Otherwise, provide descriptive text.`,
         selector,
         standard: "WCAG 1.1.1",
@@ -141,7 +154,7 @@ export function auditImages(): ImageResult {
         id: `img-altfile-${index}`,
         scanner: "image-auditor",
         severity: "warning",
-        title: "Image alt text is a filename",
+        title: "Alt text is filename",
         description: `Alt text "${altText.slice(0, 50)}" appears to be a filename. Provide a meaningful description instead.`,
         selector,
         standard: "WCAG 1.1.1",
@@ -154,7 +167,7 @@ export function auditImages(): ImageResult {
         id: `img-altredundant-${index}`,
         scanner: "image-auditor",
         severity: "warning",
-        title: "Image alt text is generic",
+        title: "Redundant alt text",
         description: `Alt text "${altText}" doesn't describe the image's content or purpose. Use specific, descriptive text.`,
         selector,
         standard: "WCAG 1.1.1",
@@ -178,29 +191,32 @@ export function auditImages(): ImageResult {
       });
     }
 
+    // Only report lazy loading issues for meaningful images (at least 50x50 pixels)
+    const isMeaningfulSize = displayWidth >= 50 && displayHeight >= 50;
+
     // Above-fold images should NOT be lazy loaded
-    if (isAboveFold && hasLazyLoading) {
+    if (isAboveFold && hasLazyLoading && isMeaningfulSize) {
       findings.push({
         id: `img-lazyfold-${index}`,
         scanner: "image-auditor",
         severity: "info",
-        title: "Above-fold image uses lazy loading",
+        title: "Lazy load above fold",
         description:
-          "This image is visible in the initial viewport but has loading=\"lazy\". Above-fold images should load eagerly for best LCP performance.",
+          `This image (${Math.round(displayWidth)}x${Math.round(displayHeight)}px) is visible in the initial viewport but has loading="lazy". Above-fold images should load eagerly for best LCP performance.`,
         selector,
         standard: null,
       });
     }
 
-    // Below-fold images without lazy loading
-    if (!isAboveFold && !hasLazyLoading && displayWidth > 0) {
+    // Below-fold images without lazy loading — only flag large images
+    if (!isAboveFold && !hasLazyLoading && isMeaningfulSize && displayWidth >= 200) {
       findings.push({
         id: `img-nolazy-${index}`,
         scanner: "image-auditor",
         severity: "info",
-        title: "Below-fold image without lazy loading",
+        title: "No lazy loading",
         description:
-          "This image is below the fold and could benefit from loading=\"lazy\" to defer loading until the user scrolls near it.",
+          `This image (${Math.round(displayWidth)}x${Math.round(displayHeight)}px) is below the fold and could benefit from loading="lazy" to defer loading until the user scrolls near it.`,
         selector,
         standard: null,
       });
@@ -212,7 +228,7 @@ export function auditImages(): ImageResult {
         id: `img-nosrcset-${index}`,
         scanner: "image-auditor",
         severity: "info",
-        title: "Large image without srcset/sizes",
+        title: "No responsive srcset",
         description: `This ${naturalWidth}px wide image has no srcset attribute. Using srcset allows browsers to load smaller images on smaller screens, saving bandwidth.`,
         selector,
         standard: null,
@@ -249,7 +265,7 @@ export function auditImages(): ImageResult {
           id: `svg-no-ariahidden-${index}`,
           scanner: "image-auditor",
           severity: "info",
-          title: "Decorative SVG should have aria-hidden=\"true\"",
+          title: "Decorative SVG not hidden",
           description:
             "This SVG appears decorative (inside an interactive element with text). Add aria-hidden=\"true\" to hide it from screen readers.",
           selector,
@@ -260,7 +276,7 @@ export function auditImages(): ImageResult {
           id: `svg-no-accessible-name-${index}`,
           scanner: "image-auditor",
           severity: "warning",
-          title: "SVG missing accessible name",
+          title: "SVG no accessible name",
           description:
             "This SVG has no role=\"img\", aria-label, aria-labelledby, or <title> element. If informative, add role=\"img\" and an aria-label. If decorative, add aria-hidden=\"true\".",
           selector,
@@ -272,7 +288,7 @@ export function auditImages(): ImageResult {
         id: `svg-role-no-label-${index}`,
         scanner: "image-auditor",
         severity: "warning",
-        title: "SVG has role=\"img\" but no accessible name",
+        title: "SVG no accessible name",
         description:
           "This SVG has role=\"img\" but no aria-label, aria-labelledby, or <title>. Add a label to describe the image.",
         selector,
@@ -321,7 +337,7 @@ export function auditImages(): ImageResult {
           id: `bg-img-no-alt-${index}`,
           scanner: "image-auditor",
           severity: "info",
-          title: "CSS background image may need text alternative",
+          title: "Background image info",
           description: `This element uses a CSS background image and appears to convey content. If informative, add role="img" and aria-label. Element: <${el.tagName.toLowerCase()}>.`,
           selector: el.id ? `#${CSS.escape(el.id)}` : el.tagName.toLowerCase(),
           standard: "WCAG 1.1.1",

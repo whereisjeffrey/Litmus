@@ -95,7 +95,7 @@ export default function FindingCard({ finding, forceCollapsed }: FindingCardProp
           {/* Header row */}
           <div className="flex items-center gap-2 mb-1">
             <span className={config.badge}>{finding.severity}</span>
-            <h4 className="text-sm font-medium text-surface-900 truncate">
+            <h4 className="text-sm font-medium text-surface-900">
               {finding.title}
             </h4>
           </div>

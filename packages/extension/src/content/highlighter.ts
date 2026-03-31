@@ -102,21 +102,89 @@ function positionOverlay(el: Element): void {
   }
 }
 
+/**
+ * Tries multiple strategies to find an element, from most specific to most lenient.
+ */
 function safeQuerySelector(selector: string): Element | null {
+  // Strategy 1: Try the exact selector
   try {
-    return document.querySelector(selector);
+    const el = document.querySelector(selector);
+    if (el) return el;
   } catch {
-    // Selector might have invalid characters — try escaping or fallback
-    try {
-      // Try just the tag + first class if the full selector is broken
-      const parts = selector.split(" > ");
-      const last = parts[parts.length - 1];
-      if (last) return document.querySelector(last);
-    } catch {
-      // Give up
-    }
-    return null;
+    // Selector syntax error — continue to fallbacks
   }
+
+  // Strategy 2: If it's a compound selector (a > b > c), try just the last part
+  try {
+    const parts = selector.split(" > ");
+    if (parts.length > 1) {
+      const last = parts[parts.length - 1].trim();
+      if (last) {
+        const el = document.querySelector(last);
+        if (el) return el;
+      }
+    }
+  } catch {
+    // continue
+  }
+
+  // Strategy 3: If it contains an attribute selector like img[src="..."], try a partial match
+  try {
+    const attrMatch = selector.match(/^(\w+)\[(\w+)="([^"]+)"\]$/);
+    if (attrMatch) {
+      const [, tag, attr, value] = attrMatch;
+      // Try starts-with match (handles truncated URLs)
+      const partialValue = value.slice(0, 40).replace(/[\\]/g, "");
+      const el = document.querySelector(`${tag}[${attr}^="${CSS.escape(partialValue)}"]`);
+      if (el) return el;
+      // Try contains match
+      const el2 = document.querySelector(`${tag}[${attr}*="${CSS.escape(partialValue.slice(0, 20))}"]`);
+      if (el2) return el2;
+    }
+  } catch {
+    // continue
+  }
+
+  // Strategy 4: If it's an ID selector, try it directly
+  try {
+    const idMatch = selector.match(/#([^\s>]+)/);
+    if (idMatch) {
+      const el = document.getElementById(idMatch[1]);
+      if (el) return el;
+    }
+  } catch {
+    // continue
+  }
+
+  // Strategy 5: Extract just the tag name and nth-of-type if present
+  try {
+    const nthMatch = selector.match(/(\w+):nth-of-type\((\d+)\)/);
+    if (nthMatch) {
+      const [fullMatch] = nthMatch;
+      const el = document.querySelector(fullMatch);
+      if (el) return el;
+    }
+  } catch {
+    // continue
+  }
+
+  // Strategy 6: Just try the tag name from the selector
+  try {
+    const tagMatch = selector.match(/^(\w+)/);
+    if (tagMatch) {
+      // Don't return a generic tag match — too likely to highlight the wrong thing
+      // Only use this for specific elements like form, nav, header, footer, main
+      const specificTags = new Set(["form", "nav", "header", "footer", "main", "aside", "table"]);
+      if (specificTags.has(tagMatch[1].toLowerCase())) {
+        const el = document.querySelector(tagMatch[1]);
+        if (el) return el;
+      }
+    }
+  } catch {
+    // give up
+  }
+
+  return null;
 }
 
 export function showElement(selector: string, title: string, description: string): void {

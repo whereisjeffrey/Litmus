@@ -22,12 +22,6 @@ const severityDotColor: Record<FindingSeverity, string> = {
   info: "bg-accent-500",
 };
 
-const severityBadgeClass: Record<FindingSeverity, string> = {
-  critical: "badge-critical",
-  warning: "badge-warning",
-  info: "badge-info",
-};
-
 function truncateSelector(selector: string, max = 40): string {
   if (selector.length <= max) return selector;
   return selector.slice(0, max - 3) + "...";
@@ -60,7 +54,6 @@ export default function FindingGroup({
     }
   }, [forceCollapsed]); // intentionally omit expanded
 
-  const estimatedPoints = findings.length * SEVERITY_WEIGHT[severity];
   const humanized = useMemo(() => humanizeFinding(findings[0]), [findings]);
   const description = humanized.humanDescription;
 
@@ -115,18 +108,15 @@ export default function FindingGroup({
 
         {/* Title + count */}
         <div className="flex-1 min-w-0 flex items-center gap-2">
-          <h4 className="text-sm font-medium text-surface-900 truncate">
+          <h4 className="text-sm font-medium text-surface-900">
             {title}
           </h4>
-          <span className={`flex-shrink-0 ${severityBadgeClass[severity]}`}>
-            {findings.length} instances
-          </span>
+          {findings.length > 1 && (
+            <span className="flex-shrink-0 text-2xs text-surface-400 font-medium">
+              &times;{findings.length}
+            </span>
+          )}
         </div>
-
-        {/* Point impact */}
-        <span className="flex-shrink-0 text-2xs text-surface-400 font-medium">
-          ~{estimatedPoints} pts
-        </span>
 
         {/* Expand chevron */}
         <div className="flex-shrink-0 text-surface-400">

@@ -157,10 +157,10 @@ export function collectConsoleErrors(): ConsoleResult {
           severity: err.type === "csp-violation" ? "warning" : "critical",
           title:
             err.type === "csp-violation"
-              ? "Content Security Policy violation"
+              ? "CSP violation"
               : err.type === "unhandledrejection"
-                ? "Unhandled promise rejection"
-                : "JavaScript runtime error",
+                ? "Promise rejection"
+                : "JS runtime error",
           description: `${err.message}${err.source ? ` (${err.source}${err.line ? `:${err.line}` : ""})` : ""} [${new Date(err.timestamp).toLocaleTimeString()}]`,
           selector: null,
           standard: null,
@@ -185,7 +185,7 @@ export function collectConsoleErrors(): ConsoleResult {
             id: `console-csp-${i}`,
             scanner: "console-capture",
             severity: "warning",
-            title: "Content Security Policy violation",
+            title: "CSP violation",
             description: `${err.message} [${new Date(err.timestamp).toLocaleTimeString()}]`,
             selector: null,
             standard: null,

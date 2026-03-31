@@ -329,7 +329,7 @@ export function checkContrast(): ContrastResult {
         id: `contrast-complex-bg-${pairs.length}`,
         scanner: "contrast-checker",
         severity: "info",
-        title: `Unable to determine contrast (background image/gradient)`,
+        title: `Contrast unknown (bg image)`,
         description: `Text "${text.slice(0, 40)}..." has a background image or gradient. Manual review recommended to ensure ${requiredRatio}:1 contrast ratio.`,
         selector: uniqueSelector,
         standard: "WCAG 1.4.3",

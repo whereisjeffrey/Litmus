@@ -21,9 +21,13 @@ chrome.runtime.onMessage.addListener(
     }
     if (message.type === "SHOW_ELEMENT") {
       try {
+        console.log("[Placeholder] Show Me triggered for:", message.selector);
+        const found = document.querySelector(message.selector);
+        console.log("[Placeholder] Element found:", !!found, found);
         showElement(message.selector, message.title, message.description);
-        sendResponse({ status: "shown" });
+        sendResponse({ status: "shown", found: !!found });
       } catch (err) {
+        console.error("[Placeholder] Show Me error:", err);
         sendResponse({ status: "error", error: String(err) });
       }
     }
