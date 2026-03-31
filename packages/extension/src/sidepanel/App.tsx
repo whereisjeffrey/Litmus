@@ -91,7 +91,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-surface-50 px-4 py-4 w-full box-border overflow-x-hidden">
+    <div className="min-h-screen bg-white px-4 py-4 w-full box-border overflow-x-hidden">
       {/* Header */}
       <header className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">

@@ -86,12 +86,12 @@ export default function ScoreGauge({
   const GAP_DEGREES = 2;
   const GAP_LENGTH = (GAP_DEGREES / 180) * halfCircumference;
 
-  // Score color
+  // Score color — all blue, darker = higher score
   const scoreColor = useMemo(() => {
-    if (clampedScore >= 90) return "#16A34A";
+    if (clampedScore >= 90) return "#1D4ED8";
     if (clampedScore >= 75) return "#2563EB";
-    if (clampedScore >= 50) return "#D97706";
-    return "#DC2626";
+    if (clampedScore >= 50) return "#3B82F6";
+    return "#60A5FA";
   }, [clampedScore]);
 
   const scoreLabel = useMemo(() => {
@@ -102,10 +102,10 @@ export default function ScoreGauge({
   }, [clampedScore]);
 
   const scoreLabelColor = useMemo(() => {
-    if (clampedScore >= 90) return "#16A34A";
+    if (clampedScore >= 90) return "#1D4ED8";
     if (clampedScore >= 75) return "#2563EB";
-    if (clampedScore >= 50) return "#D97706";
-    return "#DC2626";
+    if (clampedScore >= 50) return "#3B82F6";
+    return "#60A5FA";
   }, [clampedScore]);
 
   // Build the loss segments

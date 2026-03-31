@@ -13,29 +13,30 @@ const IMPACT_COLOR: Record<string, string> = {
 
 export default function HookLine({ hookLine, quickWins }: HookLineProps) {
   return (
-    <div className="card-elevated bg-accent-50 border-accent-100">
+    <div className="p-4 rounded-xl" style={{ backgroundColor: "#ECF8FF" }}>
       {/* Smart Insight header */}
       <div className="flex items-start gap-2">
-        {/* Sparkle icon */}
+        {/* 4-point star icon */}
         <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
           fill="none"
-          className="text-accent-500 flex-shrink-0 mt-0.5"
+          className="flex-shrink-0 mt-0.5"
         >
           <path
-            d="M8 1l1.5 4.5L14 7l-4.5 1.5L8 13l-1.5-4.5L2 7l4.5-1.5L8 1z"
-            stroke="currentColor"
-            strokeWidth="1.2"
-            strokeLinejoin="round"
+            d="M12 2C12 2 13.5 8.5 15.5 10.5C17.5 12.5 22 12 22 12C22 12 17.5 13.5 15.5 15.5C13.5 17.5 12 22 12 22C12 22 10.5 17.5 8.5 15.5C6.5 13.5 2 12 2 12C2 12 6.5 10.5 8.5 8.5C10.5 6.5 12 2 12 2Z"
+            fill="#171717"
+            stroke="#171717"
+            strokeWidth="0.5"
           />
+          <circle cx="19" cy="5" r="1.2" fill="#60A5FA" />
         </svg>
         <div>
-          <span className="text-xs font-bold text-accent-700">
+          <span className="text-2xs font-medium text-accent-500 uppercase tracking-wide">
             Smart Insight
           </span>
-          <p className="text-sm font-semibold text-surface-900 leading-snug mt-1">
+          <p className="text-xs font-medium text-surface-800 leading-snug mt-1">
             {hookLine}
           </p>
         </div>
@@ -45,7 +46,7 @@ export default function HookLine({ hookLine, quickWins }: HookLineProps) {
       {quickWins.length > 0 && (
         <div className="mt-4">
           <span className="text-2xs font-semibold text-surface-500 uppercase tracking-wider">
-            Quick Wins
+            Priorities
           </span>
           <div className="mt-2">
             {quickWins.map((win, i) => (

@@ -12,8 +12,7 @@
   }
 
   body {
-    @apply bg-surface-50 text-surface-900;
-    width: 380px;
+    @apply bg-white text-surface-900;
     min-height: 100vh;
     margin: 0;
     overflow-x: hidden;
@@ -22,12 +21,11 @@
 
 @layer components {
   .card {
-    @apply bg-white rounded-xl p-4;
-    /* NO border, NO shadow by default */
+    @apply bg-surface-100 rounded-xl p-4;
   }
 
   .card-elevated {
-    @apply bg-white rounded-xl p-4 shadow-card border border-surface-100;
+    @apply bg-white rounded-xl p-4 shadow-card border border-surface-200;
   }
 
   .divider {
