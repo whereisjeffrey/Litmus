@@ -23,6 +23,8 @@ import { auditImages } from "./image-auditor";
 import { checkMeta } from "./meta-checker";
 import { checkTouchTargets } from "./touch-targets";
 import { collectConsoleErrors } from "./console-capture";
+import { checkUXHeuristics } from "./ux-heuristics";
+import { runPageSpecificChecks } from "./page-specific-checks";
 import { detectPageType } from "./page-type-detector";
 import { generateAnalysis } from "./ai-analyzer";
 
@@ -67,19 +69,19 @@ function safeRun<T>(
 function computeCategories(allFindings: Finding[]): CategoryScore[] {
   const categoryMap: Record<string, { scanners: string[]; weight: number }> = {
     Accessibility: {
-      scanners: ["contrast-checker", "heading-checker", "image-auditor"],
+      scanners: ["contrast-checker", "heading-checker", "image-auditor", "ux-heuristics-a11y"],
       weight: SCORE_WEIGHTS.accessibility,
     },
     "UX Heuristics": {
-      scanners: ["link-validator", "touch-targets"],
+      scanners: ["link-validator", "touch-targets", "ux-heuristics", "page-specific"],
       weight: SCORE_WEIGHTS.uxHeuristics,
     },
     Forms: {
-      scanners: ["form-analyzer"],
+      scanners: ["form-analyzer", "page-specific", "ux-heuristics-forms"],
       weight: SCORE_WEIGHTS.forms,
     },
     Content: {
-      scanners: ["meta-checker"],
+      scanners: ["meta-checker", "page-specific", "ux-heuristics-content"],
       weight: SCORE_WEIGHTS.content,
     },
     "Visual Consistency": {
@@ -218,7 +220,7 @@ export async function runFullScan(
   const crawl: CrawlResult = safeRun("dom-crawler", crawlDOM, EMPTY_CRAWL);
 
   if (isTimedOut()) {
-    return buildResult(crawl, EMPTY_LINKS, EMPTY_CONTRAST, EMPTY_HEADINGS, EMPTY_FORMS, EMPTY_IMAGES, EMPTY_META, EMPTY_TOUCH, EMPTY_CONSOLE, pageType);
+    return buildResult(crawl, EMPTY_LINKS, EMPTY_CONTRAST, EMPTY_HEADINGS, EMPTY_FORMS, EMPTY_IMAGES, EMPTY_META, EMPTY_TOUCH, EMPTY_CONSOLE, [], [], pageType);
   }
 
   onProgress("Checking links...", 15);
@@ -229,7 +231,7 @@ export async function runFullScan(
   const headings: HeadingResult = safeRun("heading-checker", checkHeadings, EMPTY_HEADINGS);
 
   if (isTimedOut()) {
-    return buildResult(crawl, links, contrast, headings, EMPTY_FORMS, EMPTY_IMAGES, EMPTY_META, EMPTY_TOUCH, EMPTY_CONSOLE, pageType);
+    return buildResult(crawl, links, contrast, headings, EMPTY_FORMS, EMPTY_IMAGES, EMPTY_META, EMPTY_TOUCH, EMPTY_CONSOLE, [], [], pageType);
   }
 
   onProgress("Analyzing forms & inputs...", 50);
@@ -239,19 +241,25 @@ export async function runFullScan(
   const images: ImageResult = safeRun("image-auditor", auditImages, EMPTY_IMAGES);
 
   if (isTimedOut()) {
-    return buildResult(crawl, links, contrast, headings, forms, images, EMPTY_META, EMPTY_TOUCH, EMPTY_CONSOLE, pageType);
+    return buildResult(crawl, links, contrast, headings, forms, images, EMPTY_META, EMPTY_TOUCH, EMPTY_CONSOLE, [], [], pageType);
   }
 
   onProgress("Evaluating user experience...", 75);
   const meta: MetaResult = safeRun("meta-checker", checkMeta, EMPTY_META);
   const touchTargets: TouchTargetResult = safeRun("touch-targets", checkTouchTargets, EMPTY_TOUCH);
 
-  onProgress("Checking for errors...", 85);
+  onProgress("Checking for errors...", 80);
   const consoleResult: ConsoleResult = safeRun("console-capture", collectConsoleErrors, EMPTY_CONSOLE);
+
+  onProgress("Checking UX heuristics...", 85);
+  const uxHeuristics = safeRun("ux-heuristics", checkUXHeuristics, { findings: [] as Finding[] });
+
+  onProgress("Running page-specific checks...", 90);
+  const pageSpecific = safeRun("page-specific", () => runPageSpecificChecks(pageType), { findings: [] as Finding[] });
 
   onProgress("Crunching the numbers...", 95);
 
-  return buildResult(crawl, links, contrast, headings, forms, images, meta, touchTargets, consoleResult, pageType);
+  return buildResult(crawl, links, contrast, headings, forms, images, meta, touchTargets, consoleResult, uxHeuristics.findings, pageSpecific.findings, pageType);
 }
 
 /**
@@ -267,6 +275,8 @@ function buildResult(
   meta: MetaResult,
   touchTargets: TouchTargetResult,
   consoleResult: ConsoleResult,
+  uxHeuristicFindings: Finding[] = [],
+  pageSpecificFindings: Finding[] = [],
   pageType: PageType = PageType.Unknown
 ): ScanResult {
   // Merge all findings and assign unique IDs
@@ -279,6 +289,8 @@ function buildResult(
     ...meta.findings,
     ...touchTargets.findings,
     ...consoleResult.findings,
+    ...uxHeuristicFindings,
+    ...pageSpecificFindings,
   ].map(ensureUniqueId);
 
   // Sort: critical first, then warning, then info
