@@ -5,6 +5,7 @@ import ScanButton from "./components/ScanButton";
 import ScanProgress from "./components/ScanProgress";
 import ScoreGauge from "./components/ScoreGauge";
 import PlaceholderBox from "./components/PlaceholderBox";
+import HookLine from "./components/HookLine";
 import CategoryAccordion from "./components/CategoryAccordion";
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -190,8 +191,15 @@ export default function App() {
             animated={true}
           />
 
-          {/* Placeholder: Hook Line */}
-          <PlaceholderBox label="Hook Line" height={60} />
+          {/* AI Hook Line & Quick Wins */}
+          {scanResult?.aiAnalysis ? (
+            <HookLine
+              hookLine={scanResult.aiAnalysis.hookLine}
+              quickWins={scanResult.aiAnalysis.quickWins}
+            />
+          ) : (
+            <PlaceholderBox label="Hook Line" height={60} />
+          )}
 
           {/* Category accordion — grouped findings */}
           {scanResult && <CategoryAccordion result={scanResult} />}

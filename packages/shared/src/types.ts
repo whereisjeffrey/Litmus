@@ -267,6 +267,22 @@ export interface ConsoleResult {
   findings: Finding[];
 }
 
+// ─── AI Analysis ───────────────────────────────────────────────────
+
+export interface QuickWin {
+  title: string;
+  description: string;
+  estimatedTime: string;
+  impact: string;
+  category: string;
+}
+
+export interface AIAnalysis {
+  hookLine: string;
+  quickWins: QuickWin[];
+  pageInsights: string[];
+}
+
 // ─── Category Scores ────────────────────────────────────────────────
 
 export interface CategoryScore {
@@ -296,6 +312,8 @@ export interface ScanResult {
   console: ConsoleResult;
 
   allFindings: Finding[];
+
+  aiAnalysis?: AIAnalysis;
 }
 
 // ─── Messages between extension layers ──────────────────────────────

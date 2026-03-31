@@ -24,6 +24,7 @@ import { checkMeta } from "./meta-checker";
 import { checkTouchTargets } from "./touch-targets";
 import { collectConsoleErrors } from "./console-capture";
 import { detectPageType } from "./page-type-detector";
+import { generateAnalysis } from "./ai-analyzer";
 
 type ProgressCallback = (message: string, percent: number) => void;
 
@@ -297,7 +298,7 @@ function buildResult(
     categories.reduce((sum, cat) => sum + cat.score * cat.weight, 0)
   );
 
-  return {
+  const partial: ScanResult = {
     url: crawl.url,
     timestamp: Date.now(),
     overallScore,
@@ -314,4 +315,8 @@ function buildResult(
     console: consoleResult,
     allFindings,
   };
+
+  partial.aiAnalysis = generateAnalysis(partial);
+
+  return partial;
 }
