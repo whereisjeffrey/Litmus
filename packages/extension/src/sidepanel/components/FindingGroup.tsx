@@ -35,6 +35,7 @@ export default function FindingGroup({
 }: FindingGroupProps) {
   const [expanded, setExpanded] = useState(false);
   const [activeInstanceId, setActiveInstanceId] = useState<string | null>(null);
+  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
 
   // Single-instance groups render as a regular FindingCard
   if (findings.length === 1) {
@@ -152,26 +153,55 @@ export default function FindingGroup({
               return (
                 <div key={finding.id}>
                   {i > 0 && <div className="border-t border-surface-100" />}
-                  <button
-                    onClick={(e) => handleInstanceClick(finding, e)}
-                    className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors duration-150 ${
-                      isActive
-                        ? "bg-accent-50"
-                        : "hover:bg-surface-50"
-                    }`}
-                  >
-                    <span
-                      className={`flex-shrink-0 w-1.5 h-1.5 rounded-full ${severityDotColor[finding.severity]}`}
-                    />
-                    <span className="flex-1 min-w-0 text-2xs font-mono text-surface-600 truncate">
-                      {finding.selector
-                        ? truncateSelector(finding.selector)
-                        : finding.title}
-                    </span>
-                    <span className="flex-shrink-0 text-2xs text-accent-600 font-medium">
-                      Show
-                    </span>
-                  </button>
+                  <div className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors duration-150">
+                    {/* Clickable row — shows element on page */}
+                    <button
+                      onClick={(e) => handleInstanceClick(finding, e)}
+                      className={`flex-1 min-w-0 flex items-center gap-2 text-left rounded-md transition-colors duration-150 ${
+                        isActive ? "text-accent-700" : ""
+                      }`}
+                    >
+                      <span
+                        className={`flex-shrink-0 w-1.5 h-1.5 rounded-full ${severityDotColor[finding.severity]}`}
+                      />
+                      <span className={`flex-1 min-w-0 text-2xs font-mono truncate ${
+                        completedIds.has(finding.id) ? "text-surface-400 line-through" : "text-surface-600"
+                      }`}>
+                        {finding.selector
+                          ? truncateSelector(finding.selector)
+                          : finding.title}
+                      </span>
+                    </button>
+
+                    {/* Checkmark — toggles completion */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCompletedIds(prev => {
+                          const next = new Set(prev);
+                          if (next.has(finding.id)) {
+                            next.delete(finding.id);
+                          } else {
+                            next.add(finding.id);
+                          }
+                          return next;
+                        });
+                      }}
+                      className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full transition-colors duration-150"
+                    >
+                      {completedIds.has(finding.id) ? (
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <circle cx="8" cy="8" r="7" fill="#22C55E" />
+                          <path d="M5 8l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <circle cx="8" cy="8" r="7" fill="#D4D4D4" />
+                          <path d="M5 8l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
               );
             })}

@@ -174,7 +174,7 @@ export default function ScoreGauge({
     <div className="card-elevated overflow-hidden">
       <div className="flex flex-col items-center">
         {/* SVG Semi-Circle Gauge */}
-        <div className="relative" style={{ width: WIDTH, height: HEIGHT }}>
+        <div className="relative w-full" style={{ maxWidth: WIDTH, aspectRatio: `${WIDTH}/${HEIGHT}` }}>
           <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="w-full h-full">
             {/* Background track */}
             <path
@@ -247,7 +247,7 @@ export default function ScoreGauge({
         {/* Category loss breakdown */}
         {lossSegments.length > 0 && (
           <div className="w-full mt-4 pt-3 border-t border-surface-200">
-            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+            <div className="flex flex-wrap gap-x-3 gap-y-1.5 w-full min-w-0">
               {lossSegments.map((seg, i) => (
                 <div key={seg.name} className="flex items-center gap-1.5">
                   <span
