@@ -9,12 +9,12 @@ import HookLine from "./components/HookLine";
 import CategoryAccordion from "./components/CategoryAccordion";
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Accessibility: "#7BA3C4",
-  "UX Heuristics": "#9B82B8",
-  Forms: "#6BA8A0",
-  Content: "#C4A04E",
-  Visual: "#C48A9A",
-  Performance: "#8893A6",
+  Accessibility: "#93C5FD",
+  "UX Heuristics": "#A5B4FC",
+  Forms: "#BAE6FD",
+  Content: "#C7D2FE",
+  Visual: "#BFDBFE",
+  Performance: "#DDD6FE",
 };
 
 function buildCategoryLosses(result: ScanResult) {
@@ -24,7 +24,7 @@ function buildCategoryLosses(result: ScanResult) {
     return {
       name: cat.name,
       pointsLost,
-      color: CATEGORY_COLORS[cat.name] || "#8893A6",
+      color: CATEGORY_COLORS[cat.name] || "#DDD6FE",
     };
   });
 }
@@ -81,7 +81,6 @@ export default function App() {
       mode,
     } satisfies ExtensionMessage);
 
-    // Auto-rescan after viewport switch (small delay for CSS to apply)
     setTimeout(() => {
       setState("scanning");
       setProgressMessage("Switching viewport...");
@@ -92,11 +91,11 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-surface-50 px-3 py-3 w-full box-border overflow-x-hidden">
+    <div className="min-h-screen bg-surface-50 px-4 py-4 w-full box-border overflow-x-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between mb-3">
+      <header className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-accent-500 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-accent-600 flex items-center justify-center">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <circle cx="7" cy="7" r="5" stroke="white" strokeWidth="2" fill="none" />
               <circle cx="7" cy="7" r="1.5" fill="white" />
@@ -110,21 +109,21 @@ export default function App() {
         {state === "complete" && (
           <button
             onClick={handleReset}
-            className="text-xs font-medium text-surface-500 hover:text-surface-700
-                       px-3 py-1.5 rounded-lg hover:bg-surface-100 transition-colors"
+            className="text-xs font-medium text-accent-600 hover:text-accent-700
+                       px-3 py-1.5 rounded-lg hover:bg-accent-50 transition-colors"
           >
             Re-scan
           </button>
         )}
       </header>
 
-      {/* Desktop / Mobile toggle — always visible */}
-      <div className="flex gap-1 bg-surface-100 rounded-lg p-0.5 mb-3">
+      {/* Desktop / Mobile toggle */}
+      <div className="flex gap-1 bg-surface-100 rounded-lg p-0.5 mb-4">
         <button
           onClick={() => viewportMode !== "desktop" && handleViewportToggle("desktop")}
           className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
             viewportMode === "desktop"
-              ? "bg-white text-surface-900 shadow-sm"
+              ? "bg-white text-accent-600 shadow-sm"
               : "text-surface-500 hover:text-surface-700"
           }`}
         >
@@ -138,7 +137,7 @@ export default function App() {
           onClick={() => viewportMode !== "mobile" && handleViewportToggle("mobile")}
           className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
             viewportMode === "mobile"
-              ? "bg-white text-surface-900 shadow-sm"
+              ? "bg-white text-accent-600 shadow-sm"
               : "text-surface-500 hover:text-surface-700"
           }`}
         >
@@ -161,7 +160,7 @@ export default function App() {
       {/* Error state */}
       {state === "error" && (
         <div className="animate-fade-in">
-          <div className="card border-danger-400 bg-danger-50 mb-4">
+          <div className="rounded-xl bg-danger-50 border border-danger-100 p-4 mb-4">
             <p className="text-sm font-medium text-danger-600">
               Something went wrong
             </p>
@@ -175,17 +174,17 @@ export default function App() {
 
       {/* Results state */}
       {state === "complete" && (
-        <div className="animate-fade-in space-y-3">
-          {/* Real ScoreGauge */}
+        <div className="animate-fade-in space-y-4">
+          {/* ScoreGauge */}
           <ScoreGauge
             score={scanResult?.overallScore ?? 73}
             categoryLosses={scanResult ? buildCategoryLosses(scanResult) : [
-              { name: "Accessibility", pointsLost: 12, color: "#7BA3C4" },
-              { name: "UX Heuristics", pointsLost: 8, color: "#9B82B8" },
-              { name: "Forms", pointsLost: 3, color: "#6BA8A0" },
-              { name: "Content", pointsLost: 2, color: "#C4A04E" },
-              { name: "Visual", pointsLost: 1, color: "#C48A9A" },
-              { name: "Performance", pointsLost: 1, color: "#8893A6" },
+              { name: "Accessibility", pointsLost: 12, color: "#93C5FD" },
+              { name: "UX Heuristics", pointsLost: 8, color: "#A5B4FC" },
+              { name: "Forms", pointsLost: 3, color: "#BAE6FD" },
+              { name: "Content", pointsLost: 2, color: "#C7D2FE" },
+              { name: "Visual", pointsLost: 1, color: "#BFDBFE" },
+              { name: "Performance", pointsLost: 1, color: "#DDD6FE" },
             ]}
             pageType={scanResult?.pageType ?? "Web Page"}
             animated={true}
@@ -201,20 +200,20 @@ export default function App() {
             <PlaceholderBox label="Hook Line" height={60} />
           )}
 
-          {/* Category accordion — grouped findings */}
+          {/* Category accordion */}
           {scanResult && <CategoryAccordion result={scanResult} />}
 
           {/* Placeholder: Pro Upsell */}
           <PlaceholderBox label="Pro Upsell" height={120} />
 
           {/* Footer */}
-          <div className="text-center pt-2 pb-3 border-t border-surface-200">
+          <div className="text-center pt-3 pb-4 border-t border-surface-200">
             <p className="text-2xs text-surface-500">
-              Scanned {scanResult?.crawl?.totalElements ?? "—"} elements
+              Scanned {scanResult?.crawl?.totalElements ?? "\u2014"} elements
             </p>
-            <p className="text-2xs text-surface-400">
-              {scanResult?.url ? new URL(scanResult.url).hostname : "—"} &middot;{" "}
-              {scanResult?.timestamp ? new Date(scanResult.timestamp).toLocaleTimeString() : "—"}
+            <p className="text-2xs text-surface-400 mt-0.5">
+              {scanResult?.url ? new URL(scanResult.url).hostname : "\u2014"} &middot;{" "}
+              {scanResult?.timestamp ? new Date(scanResult.timestamp).toLocaleTimeString() : "\u2014"}
             </p>
           </div>
         </div>

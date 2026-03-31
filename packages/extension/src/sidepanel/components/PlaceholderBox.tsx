@@ -12,7 +12,7 @@ interface PlaceholderBoxProps {
 export default function PlaceholderBox({ label, height = 80 }: PlaceholderBoxProps) {
   return (
     <div
-      className="rounded-xl border-2 border-dashed border-surface-300 bg-surface-100
+      className="rounded-lg border-2 border-dashed border-surface-300 bg-surface-100
                  flex items-center justify-center"
       style={{ height }}
     >

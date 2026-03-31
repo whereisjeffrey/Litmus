@@ -7,8 +7,8 @@ interface ScanButtonProps {
 export default function ScanButton({ onScan }: ScanButtonProps) {
   return (
     <div className="animate-fade-in flex flex-col items-center text-center pt-16">
-      {/* Decorative icon */}
-      <div className="w-14 h-14 rounded-2xl bg-accent-50 border border-accent-200 flex items-center justify-center mb-5">
+      {/* Magnifying glass icon */}
+      <div className="w-14 h-14 rounded-2xl bg-accent-50 flex items-center justify-center mb-5">
         <svg
           width="24"
           height="24"
@@ -16,9 +16,8 @@ export default function ScanButton({ onScan }: ScanButtonProps) {
           fill="none"
           className="text-accent-500"
         >
-          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" opacity="0.3" />
-          <circle cx="12" cy="12" r="5.5" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
-          <circle cx="12" cy="12" r="2" fill="currentColor" />
+          <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M16 16l4.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       </div>
 
@@ -26,7 +25,7 @@ export default function ScanButton({ onScan }: ScanButtonProps) {
         Ready to audit this page?
       </h2>
       <p className="text-sm text-surface-500 mb-8 max-w-[260px] leading-relaxed">
-        I'll check accessibility, UX patterns, forms, content, and more.
+        Checks accessibility, UX, forms, content, and more.
       </p>
 
       <button onClick={onScan} className="btn-primary w-full">

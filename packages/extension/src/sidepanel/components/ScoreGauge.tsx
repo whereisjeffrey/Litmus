@@ -14,14 +14,25 @@ interface ScoreGaugeProps {
 }
 
 /**
- * Full-circle donut gauge with segmented ring.
+ * Semi-circle (180-degree) gauge with segmented ring.
  *
- * - The filled arc represents the score (colored by score range).
- * - The unfilled arc is split into colored segments showing WHERE points were lost.
- * - Small gaps between segments for a modern look.
- * - Score number counts up and is centered inside the ring.
- * - Category loss breakdown listed below the ring.
+ * - Half-circle arc with a thick ring (~20px stroke).
+ * - Segments in muted pastel blue tones.
+ * - Score number large and bold, centered below the arc.
+ * - Label below the number based on score range.
+ * - Category loss breakdown below in a clean row layout.
  */
+
+// Pastel blue/purple segment palette (replaces per-category colors)
+const SEGMENT_PALETTE = [
+  "#93C5FD", // blue-300
+  "#A5B4FC", // indigo-300
+  "#BAE6FD", // sky-200
+  "#C7D2FE", // indigo-200
+  "#BFDBFE", // blue-200
+  "#DDD6FE", // violet-200
+];
+
 export default function ScoreGauge({
   score,
   categoryLosses,
@@ -36,7 +47,7 @@ export default function ScoreGauge({
   const rafRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
 
-  const ANIMATION_DURATION = 1200; // ms
+  const ANIMATION_DURATION = 1200;
 
   useEffect(() => {
     if (!animated) {
@@ -50,7 +61,6 @@ export default function ScoreGauge({
     const tick = (now: number) => {
       const elapsed = now - startTimeRef.current;
       const progress = Math.min(elapsed / ANIMATION_DURATION, 1);
-      // Ease-out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
 
       setDisplayScore(Math.round(eased * clampedScore));
@@ -65,39 +75,40 @@ export default function ScoreGauge({
     return () => cancelAnimationFrame(rafRef.current);
   }, [clampedScore, animated]);
 
-  // SVG geometry
-  const SIZE = 200;
-  const CENTER = SIZE / 2;
-  const RADIUS = 78;
-  const STROKE_WIDTH = 22;
-  const circumference = 2 * Math.PI * RADIUS;
-  const GAP_DEGREES = 2.5; // gap between segments in degrees
-  const GAP_LENGTH = (GAP_DEGREES / 360) * circumference;
+  // SVG geometry — semi-circle
+  const WIDTH = 240;
+  const HEIGHT = 140;
+  const CENTER_X = WIDTH / 2;
+  const CENTER_Y = 120;
+  const RADIUS = 90;
+  const STROKE_WIDTH = 20;
+  const halfCircumference = Math.PI * RADIUS; // 180 degrees
+  const GAP_DEGREES = 2;
+  const GAP_LENGTH = (GAP_DEGREES / 180) * halfCircumference;
 
   // Score color
   const scoreColor = useMemo(() => {
-    if (clampedScore >= 90) return "#2D7D55"; // deep teal/green
-    if (clampedScore >= 75) return "#3D9E6E"; // soft green
-    if (clampedScore >= 50) return "#C9A23B"; // warm amber
-    return "#D15A4C"; // red/coral
+    if (clampedScore >= 90) return "#16A34A";
+    if (clampedScore >= 75) return "#2563EB";
+    if (clampedScore >= 50) return "#D97706";
+    return "#DC2626";
   }, [clampedScore]);
 
   const scoreLabel = useMemo(() => {
     if (clampedScore >= 90) return "Excellent";
-    if (clampedScore >= 75) return "Solid";
+    if (clampedScore >= 75) return "Good";
     if (clampedScore >= 50) return "Needs Work";
     return "Needs Attention";
   }, [clampedScore]);
 
-  const scoreBg = useMemo(() => {
-    if (clampedScore >= 90) return "#F0FAF4";
-    if (clampedScore >= 75) return "#F0FAF4";
-    if (clampedScore >= 50) return "#FDF8EE";
-    return "#FDF2F0";
+  const scoreLabelColor = useMemo(() => {
+    if (clampedScore >= 90) return "#16A34A";
+    if (clampedScore >= 75) return "#2563EB";
+    if (clampedScore >= 50) return "#D97706";
+    return "#DC2626";
   }, [clampedScore]);
 
   // Build the loss segments
-  // Filter out zero-loss categories, sort by largest loss first
   const lossSegments = useMemo(() => {
     return categoryLosses
       .filter((c) => c.pointsLost > 0)
@@ -109,41 +120,15 @@ export default function ScoreGauge({
     [lossSegments]
   );
 
-  // Score arc (filled portion)
-  const scoreArcLength = (clampedScore / 100) * circumference;
+  // Score arc (filled portion of semi-circle)
+  const scoreArcLength = (clampedScore / 100) * halfCircumference;
 
-  // Loss arc segments — divide the remaining ring among categories
-  const lossArcSegments = useMemo(() => {
-    if (totalLost === 0 || lossSegments.length === 0) return [];
-
-    const totalLossArc = ((100 - clampedScore) / 100) * circumference;
-    const totalGaps = lossSegments.length * GAP_LENGTH;
-    const availableArc = Math.max(0, totalLossArc - totalGaps);
-
-    let currentOffset = circumference - scoreArcLength;
-    // We need to account for the gap after the score arc
-    currentOffset -= GAP_LENGTH / 2;
-
-    return lossSegments.map((seg) => {
-      const segLength = (seg.pointsLost / totalLost) * availableArc;
-      currentOffset -= segLength + GAP_LENGTH;
-      return {
-        ...seg,
-        arcLength: segLength,
-        // dashoffset places the segment: circumference - (position + length) from start
-        dashOffset: currentOffset + segLength, // corrected for SVG rotation
-      };
-    });
-  }, [lossSegments, totalLost, clampedScore, circumference, scoreArcLength]);
-
-  // Compute each loss segment's position along the ring.
-  // The score arc starts at 12 o'clock (top) and goes clockwise.
-  // Loss segments fill the remaining gap, also clockwise, starting where score ends.
+  // Loss arc segments
   const lossSegmentArcs = useMemo(() => {
     if (totalLost === 0 || lossSegments.length === 0) return [];
 
-    const totalLossArc = ((100 - clampedScore) / 100) * circumference;
-    const numGaps = lossSegments.length + 1; // gap before first, between each, after last (before score start)
+    const totalLossArc = ((100 - clampedScore) / 100) * halfCircumference;
+    const numGaps = lossSegments.length + 1;
     const totalGapSpace = numGaps * GAP_LENGTH;
     const availableArc = Math.max(0, totalLossArc - totalGapSpace);
 
@@ -155,23 +140,19 @@ export default function ScoreGauge({
       dashOffset: number;
     }> = [];
 
-    // Start position: right after the score arc + first gap
     let consumedArc = scoreArcLength + GAP_LENGTH;
 
-    for (const seg of lossSegments) {
+    for (let i = 0; i < lossSegments.length; i++) {
+      const seg = lossSegments[i];
       const segArc = (seg.pointsLost / totalLost) * availableArc;
-
-      // dasharray: segArc visible, rest invisible
-      const dashArray = `${segArc} ${circumference - segArc}`;
-      // dashoffset: shift so segment starts at consumedArc from top
-      // SVG circle starts at 3 o'clock, we rotate -90 to start at 12 o'clock.
-      // dashoffset = circumference - consumedArc
-      const dashOffset = circumference - consumedArc;
+      const dashArray = `${segArc} ${halfCircumference * 2 - segArc}`;
+      // For semi-circle starting from left (9 o'clock), going clockwise
+      const dashOffset = halfCircumference * 2 - consumedArc;
 
       arcs.push({
         name: seg.name,
         pointsLost: seg.pointsLost,
-        color: seg.color,
+        color: SEGMENT_PALETTE[i % SEGMENT_PALETTE.length],
         dashArray,
         dashOffset,
       });
@@ -180,55 +161,53 @@ export default function ScoreGauge({
     }
 
     return arcs;
-  }, [lossSegments, totalLost, clampedScore, circumference, scoreArcLength]);
+  }, [lossSegments, totalLost, clampedScore, halfCircumference, scoreArcLength]);
 
   // Animated score arc
   const animatedScoreArc = scoreArcLength * animationProgress;
-  const scoreDashArray = `${animatedScoreArc} ${circumference - animatedScoreArc}`;
+  const scoreDashArray = `${animatedScoreArc} ${halfCircumference * 2 - animatedScoreArc}`;
+
+  // Semi-circle path (from left to right, arcing upward)
+  const pathD = `M ${CENTER_X - RADIUS} ${CENTER_Y} A ${RADIUS} ${RADIUS} 0 0 1 ${CENTER_X + RADIUS} ${CENTER_Y}`;
 
   return (
-    <div className="card overflow-hidden">
+    <div className="card-elevated overflow-hidden">
       <div className="flex flex-col items-center">
-        {/* SVG Gauge */}
-        <div className="relative w-[200px] max-w-full aspect-square">
-          <svg
-            viewBox={`0 0 ${SIZE} ${SIZE}`}
-            className="w-full h-full transform -rotate-90"
-          >
-            {/* Background track (very subtle) */}
-            <circle
-              cx={CENTER}
-              cy={CENTER}
-              r={RADIUS}
+        {/* SVG Semi-Circle Gauge */}
+        <div className="relative" style={{ width: WIDTH, height: HEIGHT }}>
+          <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="w-full h-full">
+            {/* Background track */}
+            <path
+              d={pathD}
               fill="none"
-              stroke="#ECEAE4"
+              stroke="#E5E5E5"
               strokeWidth={STROKE_WIDTH}
-              opacity={0.5}
+              strokeLinecap="round"
             />
 
-            {/* Loss segments (behind score arc, always visible) */}
+            {/* Loss segments */}
             {lossSegmentArcs.map((seg, i) => (
-              <circle
+              <path
                 key={i}
-                cx={CENTER}
-                cy={CENTER}
-                r={RADIUS}
+                d={pathD}
                 fill="none"
                 stroke={seg.color}
                 strokeWidth={STROKE_WIDTH}
                 strokeDasharray={seg.dashArray}
                 strokeDashoffset={seg.dashOffset}
                 strokeLinecap="butt"
-                opacity={animationProgress > 0.3 ? Math.min(1, (animationProgress - 0.3) / 0.4) * 0.6 : 0}
+                opacity={
+                  animationProgress > 0.3
+                    ? Math.min(1, (animationProgress - 0.3) / 0.4) * 0.7
+                    : 0
+                }
                 style={{ transition: "opacity 0.3s ease-out" }}
               />
             ))}
 
             {/* Score arc (on top) */}
-            <circle
-              cx={CENTER}
-              cy={CENTER}
-              r={RADIUS}
+            <path
+              d={pathD}
               fill="none"
               stroke={scoreColor}
               strokeWidth={STROKE_WIDTH}
@@ -238,40 +217,50 @@ export default function ScoreGauge({
             />
           </svg>
 
-          {/* Center content */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center rotate-0">
+          {/* Center score number */}
+          <div
+            className="absolute flex flex-col items-center"
+            style={{ left: "50%", bottom: 0, transform: "translateX(-50%)" }}
+          >
             <span
-              className="font-semibold text-surface-900"
-              style={{ fontSize: 38, lineHeight: 1 }}
+              className="font-bold text-surface-900"
+              style={{ fontSize: 42, lineHeight: 1 }}
             >
               {displayScore}
-            </span>
-            <span
-              className="inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-medium mt-2"
-              style={{ backgroundColor: scoreBg, color: scoreColor }}
-            >
-              {scoreLabel}
-            </span>
-            <span className="text-2xs text-surface-500 mt-1">
-              {pageType}
             </span>
           </div>
         </div>
 
+        {/* Label and page type */}
+        <div className="flex flex-col items-center mt-1">
+          <span
+            className="text-sm font-semibold"
+            style={{ color: scoreLabelColor }}
+          >
+            {scoreLabel}
+          </span>
+          <span className="inline-flex items-center rounded-full bg-surface-100 px-2.5 py-0.5 text-2xs font-medium text-surface-500 mt-1.5">
+            {pageType}
+          </span>
+        </div>
+
         {/* Category loss breakdown */}
         {lossSegments.length > 0 && (
-          <div className="w-full mt-3 pt-3 border-t border-surface-200">
-            <div className="flex flex-col gap-1.5">
-              {lossSegments.map((seg) => (
-                <div key={seg.name} className="flex items-center gap-2 min-w-0">
+          <div className="w-full mt-4 pt-3 border-t border-surface-200">
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+              {lossSegments.map((seg, i) => (
+                <div key={seg.name} className="flex items-center gap-1.5">
                   <span
                     className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: seg.color }}
+                    style={{
+                      backgroundColor:
+                        SEGMENT_PALETTE[i % SEGMENT_PALETTE.length],
+                    }}
                   />
-                  <span className="text-2xs text-surface-600 truncate flex-1 min-w-0">
+                  <span className="text-2xs text-surface-500">
                     {seg.name}
                   </span>
-                  <span className="text-2xs font-medium text-surface-800 flex-shrink-0">
+                  <span className="text-2xs font-medium text-surface-700">
                     &minus;{seg.pointsLost}
                   </span>
                 </div>

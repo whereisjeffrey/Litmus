@@ -6,56 +6,76 @@ interface HookLineProps {
   quickWins: QuickWin[];
 }
 
-const IMPACT_STYLES: Record<string, string> = {
-  High: "bg-danger-50 text-danger-600",
-  Medium: "bg-warning-50 text-warning-600",
+const IMPACT_COLOR: Record<string, string> = {
+  High: "text-danger-600",
+  Medium: "text-warning-600",
 };
 
 export default function HookLine({ hookLine, quickWins }: HookLineProps) {
   return (
-    <div className="card space-y-3">
-      {/* Hook line */}
-      <div>
-        <span className="text-2xs font-medium text-surface-400 uppercase tracking-wider">
-          AI Insight
-        </span>
-        <p className="text-sm font-semibold text-surface-900 leading-snug mt-1">
-          {hookLine}
-        </p>
+    <div className="card-elevated bg-accent-50 border-accent-100">
+      {/* Smart Insight header */}
+      <div className="flex items-start gap-2">
+        {/* Sparkle icon */}
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          className="text-accent-500 flex-shrink-0 mt-0.5"
+        >
+          <path
+            d="M8 1l1.5 4.5L14 7l-4.5 1.5L8 13l-1.5-4.5L2 7l4.5-1.5L8 1z"
+            stroke="currentColor"
+            strokeWidth="1.2"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <div>
+          <span className="text-xs font-bold text-accent-700">
+            Smart Insight
+          </span>
+          <p className="text-sm font-semibold text-surface-900 leading-snug mt-1">
+            {hookLine}
+          </p>
+        </div>
       </div>
 
       {/* Quick Wins */}
       {quickWins.length > 0 && (
-        <div>
-          <span className="text-2xs font-medium text-surface-400 uppercase tracking-wider">
+        <div className="mt-4">
+          <span className="text-2xs font-semibold text-surface-500 uppercase tracking-wider">
             Quick Wins
           </span>
-          <div className="mt-1.5 space-y-2">
+          <div className="mt-2">
             {quickWins.map((win, i) => (
-              <div
-                key={i}
-                className="rounded-lg bg-surface-50 border border-surface-200 px-3 py-2"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-xs font-medium text-surface-800 leading-snug">
+              <div key={i}>
+                {i > 0 && <div className="divider" />}
+                <div className="flex items-center gap-2 py-2.5">
+                  {/* Star bullet */}
+                  <span className="text-accent-400 flex-shrink-0 text-xs">
+                    &#x2726;
+                  </span>
+
+                  {/* Title */}
+                  <span className="flex-1 min-w-0 text-xs font-medium text-surface-800 truncate">
                     {win.title}
-                  </p>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <span
-                      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-2xs font-medium ${
-                        IMPACT_STYLES[win.impact] || "bg-surface-100 text-surface-600"
-                      }`}
-                    >
-                      {win.impact}
-                    </span>
-                    <span className="inline-flex items-center rounded-full bg-surface-100 text-surface-500 px-1.5 py-0.5 text-2xs font-medium">
-                      {win.estimatedTime}
-                    </span>
-                  </div>
+                  </span>
+
+                  {/* Time estimate */}
+                  <span className="flex-shrink-0 text-2xs text-surface-400 font-medium">
+                    {win.estimatedTime}
+                  </span>
+
+                  {/* Impact */}
+                  <span
+                    className={`flex-shrink-0 text-2xs font-semibold ${
+                      IMPACT_COLOR[win.impact] || "text-surface-500"
+                    }`}
+                  >
+                    {win.impact}
+                  </span>
                 </div>
-                <p className="text-2xs text-surface-500 leading-relaxed mt-1">
-                  {win.description}
-                </p>
               </div>
             ))}
           </div>

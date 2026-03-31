@@ -21,30 +21,44 @@
 }
 
 @layer components {
-  .btn-primary {
-    @apply inline-flex items-center justify-center rounded-xl px-6 py-3
-           bg-accent-500 text-white font-semibold text-sm
-           shadow-soft hover:bg-accent-600 active:bg-accent-700
-           transition-all duration-150 ease-out
-           focus:outline-none focus:ring-2 focus:ring-accent-400 focus:ring-offset-2;
+  .card {
+    @apply bg-white rounded-xl p-4;
+    /* NO border, NO shadow by default */
   }
 
-  .card {
-    @apply rounded-xl bg-white border border-surface-200 shadow-card p-4;
+  .card-elevated {
+    @apply bg-white rounded-xl p-4 shadow-card border border-surface-100;
+  }
+
+  .divider {
+    @apply border-t border-surface-200;
   }
 
   .badge-critical {
     @apply inline-flex items-center rounded-full px-2 py-0.5
-           text-2xs font-semibold bg-danger-50 text-danger-600;
+           text-2xs font-medium bg-danger-50 text-danger-600;
   }
 
   .badge-warning {
     @apply inline-flex items-center rounded-full px-2 py-0.5
-           text-2xs font-semibold bg-warning-50 text-warning-600;
+           text-2xs font-medium bg-warning-50 text-warning-600;
   }
 
   .badge-info {
     @apply inline-flex items-center rounded-full px-2 py-0.5
-           text-2xs font-semibold bg-accent-50 text-accent-600;
+           text-2xs font-medium bg-accent-50 text-accent-600;
+  }
+
+  .badge-success {
+    @apply inline-flex items-center rounded-full px-2 py-0.5
+           text-2xs font-medium bg-success-50 text-success-600;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2
+           bg-accent-600 text-white font-medium text-sm
+           hover:bg-accent-700 active:bg-accent-700
+           transition-colors duration-150
+           focus:outline-none focus:ring-2 focus:ring-accent-400 focus:ring-offset-2;
   }
 }
