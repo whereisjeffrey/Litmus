@@ -57,6 +57,7 @@ export default function App() {
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [viewportMode, setViewportMode] = useState<ViewportMode>("desktop");
   const [drillDownCategory, setDrillDownCategory] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const drillDownFindings = useMemo(() => {
     if (!drillDownCategory || !scanResult) return [];
@@ -77,6 +78,16 @@ export default function App() {
           // Fire-and-forget: save scan to API if user is logged in
           // TODO: pass actual access token once auth is wired up
           apiClient.saveScan(message.result).catch(() => {});
+          // Try AI analysis in background
+          setAiLoading(true);
+          apiClient.analyzeWithAI(message.result).then((aiResult) => {
+            if (aiResult) {
+              setScanResult((prev) =>
+                prev ? { ...prev, aiAnalysis: aiResult } : prev
+              );
+            }
+            setAiLoading(false);
+          });
           break;
         case "SCAN_ERROR":
           setError(message.error);
@@ -97,6 +108,14 @@ export default function App() {
 
     chrome.runtime.sendMessage({ type: "START_SCAN" } satisfies ExtensionMessage);
   }, []);
+
+  // Auto-scan on panel open
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      handleScan();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleReset = useCallback(() => {
     setState("idle");
@@ -178,8 +197,12 @@ export default function App() {
         </button>
       </div>
 
-      {/* Idle state */}
-      {state === "idle" && <ScanButton onScan={handleScan} />}
+      {/* Idle state — show minimal waiting state while auto-scan triggers */}
+      {state === "idle" && (
+        <div className="flex items-center justify-center pt-16">
+          <p className="text-sm text-surface-400">Preparing scan...</p>
+        </div>
+      )}
 
       {/* Scanning state */}
       {state === "scanning" && (
@@ -223,10 +246,23 @@ export default function App() {
 
               {/* AI Hook Line & Quick Wins */}
               {scanResult?.aiAnalysis ? (
-                <HookLine
-                  hookLine={scanResult.aiAnalysis.hookLine}
-                  quickWins={scanResult.aiAnalysis.quickWins}
-                />
+                <>
+                  <HookLine
+                    hookLine={scanResult.aiAnalysis.hookLine}
+                    quickWins={scanResult.aiAnalysis.quickWins}
+                  />
+                  {aiLoading && (
+                    <p className="text-2xs text-accent-500 animate-pulse text-center -mt-2">
+                      AI enhancing analysis...
+                    </p>
+                  )}
+                </>
+              ) : aiLoading ? (
+                <div className="rounded-xl bg-accent-50 border border-accent-100 p-4 text-center">
+                  <p className="text-xs text-accent-600 animate-pulse">
+                    AI analyzing your page...
+                  </p>
+                </div>
               ) : (
                 <PlaceholderBox label="Hook Line" height={60} />
               )}

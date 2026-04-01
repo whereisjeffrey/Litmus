@@ -6,6 +6,10 @@ export const authRoutes = new Hono();
 
 // Sign up
 authRoutes.post("/signup", async (c) => {
+  if (!supabaseAdmin) {
+    return c.json({ error: "Authentication service not configured" }, 503);
+  }
+
   try {
     const { email, password, fullName } = await c.req.json();
 
@@ -33,6 +37,10 @@ authRoutes.post("/signup", async (c) => {
 
 // Sign in
 authRoutes.post("/login", async (c) => {
+  if (!supabaseAdmin) {
+    return c.json({ error: "Authentication service not configured" }, 503);
+  }
+
   try {
     const { email, password } = await c.req.json();
 
@@ -57,6 +65,10 @@ authRoutes.post("/login", async (c) => {
 
 // Sign out
 authRoutes.post("/logout", authMiddleware, async (c) => {
+  if (!supabaseAdmin) {
+    return c.json({ error: "Authentication service not configured" }, 503);
+  }
+
   try {
     const token = c.get("accessToken");
     await supabaseAdmin.auth.admin.signOut(token);
@@ -68,6 +80,10 @@ authRoutes.post("/logout", authMiddleware, async (c) => {
 
 // Get current user
 authRoutes.get("/me", authMiddleware, async (c) => {
+  if (!supabaseAdmin) {
+    return c.json({ error: "Authentication service not configured" }, 503);
+  }
+
   const user = c.get("user");
 
   const { data: profile } = await supabaseAdmin

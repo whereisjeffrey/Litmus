@@ -9,6 +9,10 @@ scanRoutes.use("*", authMiddleware);
 
 // Save a scan
 scanRoutes.post("/save", async (c) => {
+  if (!supabaseAdmin) {
+    return c.json({ error: "Database not configured" }, 503);
+  }
+
   try {
     const user = c.get("user");
     const body = await c.req.json();
@@ -60,6 +64,10 @@ scanRoutes.post("/save", async (c) => {
 
 // Get scan history
 scanRoutes.get("/history", async (c) => {
+  if (!supabaseAdmin) {
+    return c.json({ error: "Database not configured" }, 503);
+  }
+
   try {
     const user = c.get("user");
     const limit = parseInt(c.req.query("limit") || "20", 10);
@@ -84,6 +92,10 @@ scanRoutes.get("/history", async (c) => {
 
 // Get a specific scan with findings
 scanRoutes.get("/:id", async (c) => {
+  if (!supabaseAdmin) {
+    return c.json({ error: "Database not configured" }, 503);
+  }
+
   try {
     const user = c.get("user");
     const scanId = c.req.param("id");

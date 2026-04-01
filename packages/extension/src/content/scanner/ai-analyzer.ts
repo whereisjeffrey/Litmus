@@ -488,6 +488,11 @@ const SCANNER_TO_CATEGORY: Record<string, string> = {
   "meta-checker": "Content",
   "touch-targets": "UX Heuristics",
   "console-capture": "Performance",
+  "ux-heuristics": "UX Heuristics",
+  "ux-heuristics-forms": "Forms",
+  "ux-heuristics-a11y": "Accessibility",
+  "ux-heuristics-content": "Content",
+  "page-specific": "UX Heuristics",
 };
 
 const CATEGORY_TO_ICON: Record<string, StoryCard["iconType"]> = {

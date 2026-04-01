@@ -23,6 +23,10 @@ export async function authMiddleware(c: Context, next: Next) {
 
   const token = authHeader.slice(7);
 
+  if (!supabaseAdmin) {
+    return c.json({ error: "Authentication service not configured" }, 503);
+  }
+
   try {
     const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
 

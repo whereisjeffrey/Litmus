@@ -62,33 +62,30 @@ function StoryCardItem({
   return (
     <button
       onClick={() => onDrillDown(card.category)}
-      className="w-full text-left bg-white rounded-xl p-4 transition-all duration-150 hover:shadow-sm"
-      style={{
-        borderLeft: `3px solid ${IMPACT_BORDER_COLOR[card.impact]}`,
-        border: `1px solid #E5E7EB`,
-        borderLeftWidth: "3px",
-        borderLeftColor: IMPACT_BORDER_COLOR[card.impact],
-      }}
+      className="w-full text-left bg-white rounded-xl p-4 transition-all duration-150 hover:shadow-sm border border-surface-200"
     >
-      {/* Icon + Headline */}
-      <div className="flex items-start gap-2.5">
-        <div className="flex-shrink-0 text-surface-400 mt-0.5">
+      {/* Category label with blue icon badge */}
+      <div className="flex items-center gap-2 mb-2">
+        <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-accent-50 text-accent-600 flex items-center justify-center">
           {ICON_MAP[card.iconType]}
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm text-surface-900 leading-snug">
-            {card.headline}
-          </p>
-        </div>
+        <span className="text-base font-bold text-surface-900">
+          {card.category}
+        </span>
       </div>
 
+      {/* Headline */}
+      <p className="text-xs font-bold text-surface-600 leading-snug ml-9">
+        {card.headline}
+      </p>
+
       {/* Narrative */}
-      <p className="text-xs text-surface-600 leading-relaxed mt-2.5 ml-[30px]">
+      <p className="text-xs text-surface-500 leading-relaxed mt-1.5 ml-9">
         {card.narrative}
       </p>
 
       {/* Bottom row */}
-      <div className="flex items-center gap-2 mt-3 ml-[30px] flex-wrap">
+      <div className="flex items-center gap-2 mt-3 ml-9 flex-wrap">
         {/* Finding count badge */}
         <span className="inline-flex items-center rounded-full bg-surface-100 px-2 py-0.5 text-2xs font-medium text-surface-600">
           {card.findingCount} issue{card.findingCount !== 1 ? "s" : ""}
