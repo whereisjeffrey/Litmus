@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
-import type { ScanState, ScanResult, ExtensionMessage, ViewportMode } from "@placeholder/shared";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import type { ScanState, ScanResult, ExtensionMessage, ViewportMode, Finding } from "@placeholder/shared";
 import { APP_NAME, SCORE_WEIGHTS } from "@placeholder/shared";
 import ScanButton from "./components/ScanButton";
 import ScanProgress from "./components/ScanProgress";
 import ScoreGauge from "./components/ScoreGauge";
 import PlaceholderBox from "./components/PlaceholderBox";
 import HookLine from "./components/HookLine";
-import CategoryAccordion from "./components/CategoryAccordion";
+import StoryCardView from "./components/StoryCardView";
+import CategoryDetailView from "./components/CategoryDetailView";
 import { apiClient } from "./lib/api-client";
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -17,6 +18,24 @@ const CATEGORY_COLORS: Record<string, string> = {
   Visual: "#BFDBFE",
   Performance: "#DDD6FE",
 };
+
+const SCANNER_CATEGORY: Record<string, string> = {
+  "contrast-checker": "Accessibility",
+  "heading-checker": "Accessibility",
+  "image-auditor": "Accessibility",
+  "form-analyzer": "Forms",
+  "link-validator": "Content",
+  "meta-checker": "Content",
+  "touch-targets": "UX Heuristics",
+  "console-capture": "Performance",
+};
+
+function getFindingsForCategory(result: ScanResult, category: string): Finding[] {
+  return result.allFindings.filter((f) => {
+    const mapped = SCANNER_CATEGORY[f.scanner] || f.scanner;
+    return mapped === category;
+  });
+}
 
 function buildCategoryLosses(result: ScanResult) {
   return result.categories.map((cat) => {
@@ -37,6 +56,12 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [viewportMode, setViewportMode] = useState<ViewportMode>("desktop");
+  const [drillDownCategory, setDrillDownCategory] = useState<string | null>(null);
+
+  const drillDownFindings = useMemo(() => {
+    if (!drillDownCategory || !scanResult) return [];
+    return getFindingsForCategory(scanResult, drillDownCategory);
+  }, [drillDownCategory, scanResult]);
 
   useEffect(() => {
     const listener = (message: ExtensionMessage) => {
@@ -179,47 +204,64 @@ export default function App() {
       {/* Results state */}
       {state === "complete" && (
         <div className="animate-fade-in space-y-4">
-          {/* ScoreGauge */}
-          <ScoreGauge
-            score={scanResult?.overallScore ?? 73}
-            categoryLosses={scanResult ? buildCategoryLosses(scanResult) : [
-              { name: "Accessibility", pointsLost: 12, color: "#93C5FD" },
-              { name: "UX Heuristics", pointsLost: 8, color: "#A5B4FC" },
-              { name: "Forms", pointsLost: 3, color: "#BAE6FD" },
-              { name: "Content", pointsLost: 2, color: "#C7D2FE" },
-              { name: "Visual", pointsLost: 1, color: "#BFDBFE" },
-              { name: "Performance", pointsLost: 1, color: "#DDD6FE" },
-            ]}
-            pageType={scanResult?.pageType ?? "Web Page"}
-            animated={true}
-          />
+          {drillDownCategory === null ? (
+            <>
+              {/* Overview: ScoreGauge + HookLine + StoryCards */}
+              <ScoreGauge
+                score={scanResult?.overallScore ?? 73}
+                categoryLosses={scanResult ? buildCategoryLosses(scanResult) : [
+                  { name: "Accessibility", pointsLost: 12, color: "#93C5FD" },
+                  { name: "UX Heuristics", pointsLost: 8, color: "#A5B4FC" },
+                  { name: "Forms", pointsLost: 3, color: "#BAE6FD" },
+                  { name: "Content", pointsLost: 2, color: "#C7D2FE" },
+                  { name: "Visual", pointsLost: 1, color: "#BFDBFE" },
+                  { name: "Performance", pointsLost: 1, color: "#DDD6FE" },
+                ]}
+                pageType={scanResult?.pageType ?? "Web Page"}
+                animated={true}
+              />
 
-          {/* AI Hook Line & Quick Wins */}
-          {scanResult?.aiAnalysis ? (
-            <HookLine
-              hookLine={scanResult.aiAnalysis.hookLine}
-              quickWins={scanResult.aiAnalysis.quickWins}
-            />
+              {/* AI Hook Line & Quick Wins */}
+              {scanResult?.aiAnalysis ? (
+                <HookLine
+                  hookLine={scanResult.aiAnalysis.hookLine}
+                  quickWins={scanResult.aiAnalysis.quickWins}
+                />
+              ) : (
+                <PlaceholderBox label="Hook Line" height={60} />
+              )}
+
+              {/* Story Cards */}
+              {scanResult?.aiAnalysis?.storyCards && (
+                <StoryCardView
+                  storyCards={scanResult.aiAnalysis.storyCards}
+                  result={scanResult}
+                  onDrillDown={(category) => setDrillDownCategory(category)}
+                />
+              )}
+
+              {/* Placeholder: Pro Upsell */}
+              <PlaceholderBox label="Pro Upsell" height={120} />
+
+              {/* Footer */}
+              <div className="text-center pt-3 pb-4 border-t border-surface-200">
+                <p className="text-2xs text-surface-500">
+                  Scanned {scanResult?.crawl?.totalElements ?? "\u2014"} elements
+                </p>
+                <p className="text-2xs text-surface-400 mt-0.5">
+                  {scanResult?.url ? new URL(scanResult.url).hostname : "\u2014"} &middot;{" "}
+                  {scanResult?.timestamp ? new Date(scanResult.timestamp).toLocaleTimeString() : "\u2014"}
+                </p>
+              </div>
+            </>
           ) : (
-            <PlaceholderBox label="Hook Line" height={60} />
+            /* Category Detail View */
+            <CategoryDetailView
+              category={drillDownCategory}
+              findings={drillDownFindings}
+              onBack={() => setDrillDownCategory(null)}
+            />
           )}
-
-          {/* Category accordion */}
-          {scanResult && <CategoryAccordion result={scanResult} />}
-
-          {/* Placeholder: Pro Upsell */}
-          <PlaceholderBox label="Pro Upsell" height={120} />
-
-          {/* Footer */}
-          <div className="text-center pt-3 pb-4 border-t border-surface-200">
-            <p className="text-2xs text-surface-500">
-              Scanned {scanResult?.crawl?.totalElements ?? "\u2014"} elements
-            </p>
-            <p className="text-2xs text-surface-400 mt-0.5">
-              {scanResult?.url ? new URL(scanResult.url).hostname : "\u2014"} &middot;{" "}
-              {scanResult?.timestamp ? new Date(scanResult.timestamp).toLocaleTimeString() : "\u2014"}
-            </p>
-          </div>
         </div>
       )}
     </div>

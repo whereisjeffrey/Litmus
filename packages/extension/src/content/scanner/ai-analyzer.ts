@@ -1,4 +1,4 @@
-import type { ScanResult, AIAnalysis, QuickWin, Finding } from "@placeholder/shared";
+import type { ScanResult, AIAnalysis, QuickWin, Finding, StoryCard } from "@placeholder/shared";
 import { PageType } from "@placeholder/shared";
 
 // ─── Hook Line Generation ──────────────────────────────────────────
@@ -477,6 +477,262 @@ function generatePageInsights(result: ScanResult): string[] {
   return insights.slice(0, 3);
 }
 
+// ─── Story Cards Generation ─────────────────────────────────────────
+
+const SCANNER_TO_CATEGORY: Record<string, string> = {
+  "contrast-checker": "Accessibility",
+  "heading-checker": "Accessibility",
+  "image-auditor": "Accessibility",
+  "form-analyzer": "Forms",
+  "link-validator": "Content",
+  "meta-checker": "Content",
+  "touch-targets": "UX Heuristics",
+  "console-capture": "Performance",
+};
+
+const CATEGORY_TO_ICON: Record<string, StoryCard["iconType"]> = {
+  Accessibility: "accessibility",
+  "UX Heuristics": "ux",
+  Forms: "forms",
+  Content: "content",
+  Performance: "performance",
+};
+
+interface CategoryCluster {
+  name: string;
+  findings: Finding[];
+}
+
+function buildCategoryClusters(result: ScanResult): CategoryCluster[] {
+  const grouped: Record<string, Finding[]> = {};
+
+  for (const finding of result.allFindings) {
+    const category = SCANNER_TO_CATEGORY[finding.scanner] || finding.scanner;
+    if (!grouped[category]) {
+      grouped[category] = [];
+    }
+    grouped[category].push(finding);
+  }
+
+  return Object.entries(grouped)
+    .filter(([, findings]) => findings.length > 0)
+    .map(([name, findings]) => ({ name, findings }));
+}
+
+function determineImpact(findings: Finding[]): StoryCard["impact"] {
+  let hasCritical = false;
+  let warningCount = 0;
+  let infoCount = 0;
+
+  for (const f of findings) {
+    if (f.severity === "critical") hasCritical = true;
+    else if (f.severity === "warning") warningCount++;
+    else infoCount++;
+  }
+
+  if (hasCritical) return "critical";
+  if (warningCount > infoCount) return "high";
+  if (warningCount > 0) return "medium";
+  return "low";
+}
+
+function getTopFindingTitles(findings: Finding[], max = 3): string[] {
+  const severityWeight: Record<string, number> = { critical: 3, warning: 2, info: 1 };
+  const titleMap = new Map<string, { count: number; maxSeverity: number }>();
+
+  for (const f of findings) {
+    const existing = titleMap.get(f.title);
+    const weight = severityWeight[f.severity] || 1;
+    if (existing) {
+      existing.count++;
+      existing.maxSeverity = Math.max(existing.maxSeverity, weight);
+    } else {
+      titleMap.set(f.title, { count: 1, maxSeverity: weight });
+    }
+  }
+
+  return Array.from(titleMap.entries())
+    .sort((a, b) => {
+      const sevDiff = b[1].maxSeverity - a[1].maxSeverity;
+      if (sevDiff !== 0) return sevDiff;
+      return b[1].count - a[1].count;
+    })
+    .slice(0, max)
+    .map(([title]) => title);
+}
+
+function generateHeadline(category: string, findings: Finding[], result: ScanResult): string {
+  const count = findings.length;
+
+  switch (category) {
+    case "Accessibility": {
+      const missingAlt = result.images.missingAltCount;
+      const contrastFails = result.contrast.failingCount;
+      if (missingAlt > 0 && contrastFails > 0) {
+        return "Screen readers and low-vision users can't fully use your site";
+      }
+      if (missingAlt > 0) {
+        return `${missingAlt} image${missingAlt !== 1 ? "s are" : " is"} invisible to screen readers`;
+      }
+      if (contrastFails > 0) {
+        return "Text contrast is too low for many of your visitors";
+      }
+      if (result.headings.skippedLevels.length > 0) {
+        return "Screen readers can't navigate your page structure";
+      }
+      return `Your site has ${count} accessibility gap${count !== 1 ? "s" : ""} that affect visitors`;
+    }
+
+    case "Forms": {
+      const totalFields = result.forms.forms.reduce((s, f) => s + f.fieldCount, 0)
+        + result.forms.orphanedFields.length;
+      if (totalFields > 5) {
+        return `Your forms are creating friction with ${totalFields} fields`;
+      }
+      const missingLabels = findings.filter((f) => /label/i.test(f.title)).length;
+      if (missingLabels > 0) {
+        return `${missingLabels} form field${missingLabels !== 1 ? "s" : ""} ${missingLabels !== 1 ? "are" : "is"} missing labels`;
+      }
+      return "Your forms have barriers that reduce completions";
+    }
+
+    case "Content": {
+      const missingMeta = findings.filter((f) => f.scanner === "meta-checker").length;
+      const brokenLinks = findings.filter((f) => f.scanner === "link-validator").length;
+      if (missingMeta > 0 && brokenLinks > 0) {
+        return "Search engines can't fully understand your site";
+      }
+      if (brokenLinks > 0) {
+        return `Visitors will hit ${brokenLinks} dead link${brokenLinks !== 1 ? "s" : ""} on this page`;
+      }
+      return "Your SEO foundation needs work";
+    }
+
+    case "UX Heuristics": {
+      const touchIssues = findings.filter((f) => f.scanner === "touch-targets").length;
+      if (touchIssues > 0) {
+        return `${touchIssues} tap target${touchIssues !== 1 ? "s are" : " is"} too small for mobile users`;
+      }
+      return "Users may struggle to navigate your interface";
+    }
+
+    case "Performance": {
+      const consoleErrors = findings.filter((f) => f.scanner === "console-capture").length;
+      if (consoleErrors > 0) {
+        return `${consoleErrors} JavaScript error${consoleErrors !== 1 ? "s" : ""} may be breaking functionality`;
+      }
+      return "Page performance is being impacted";
+    }
+
+    default:
+      return `${count} issue${count !== 1 ? "s" : ""} found in ${category}`;
+  }
+}
+
+function generateNarrative(category: string, findings: Finding[], result: ScanResult): string {
+  const count = findings.length;
+
+  switch (category) {
+    case "Accessibility": {
+      const parts: string[] = [];
+      const missingAlt = result.images.missingAltCount;
+      const contrastFails = result.contrast.failingCount;
+      const skippedLevels = result.headings.skippedLevels;
+
+      if (missingAlt > 0) {
+        parts.push(`${missingAlt} image${missingAlt !== 1 ? "s have" : " has"} no alt text`);
+      }
+      if (contrastFails > 0) {
+        parts.push(`${contrastFails} text element${contrastFails !== 1 ? "s fail" : " fails"} contrast standards`);
+      }
+      if (skippedLevels.length > 0) {
+        parts.push("the heading hierarchy has gaps");
+      }
+
+      const detail = parts.length > 0 ? parts.join(", ") + ". " : "";
+      return `${detail}These ${count} issue${count !== 1 ? "s" : ""} affect an estimated 15% of visitors using assistive technology, and may expose you to legal compliance risks.`;
+    }
+
+    case "Forms": {
+      const totalFields = result.forms.forms.reduce((s, f) => s + f.fieldCount, 0)
+        + result.forms.orphanedFields.length;
+      const missingLabels = findings.filter((f) => /label/i.test(f.title)).length;
+      const parts: string[] = [];
+
+      if (totalFields > 5) {
+        parts.push(`Your form asks for ${totalFields} fields, which is above the recommended maximum`);
+      }
+      if (missingLabels > 0) {
+        parts.push(`${missingLabels} field${missingLabels !== 1 ? "s are" : " is"} missing proper labels`);
+      }
+
+      const detail = parts.length > 0 ? parts.join(", and ") + ". " : "";
+      return `${detail}Each additional form barrier typically reduces completion rates by 5-10%. Simplifying your forms could have a direct impact on conversions.`;
+    }
+
+    case "Content": {
+      const metaIssues = findings.filter((f) => f.scanner === "meta-checker").length;
+      const linkIssues = findings.filter((f) => f.scanner === "link-validator").length;
+      const parts: string[] = [];
+
+      if (metaIssues > 0) {
+        parts.push(`${metaIssues} missing or incomplete meta tag${metaIssues !== 1 ? "s" : ""}`);
+      }
+      if (linkIssues > 0) {
+        parts.push(`${linkIssues} broken or placeholder link${linkIssues !== 1 ? "s" : ""}`);
+      }
+
+      const detail = parts.length > 0 ? "Found " + parts.join(" and ") + ". " : "";
+      return `${detail}These issues limit how search engines index your page and can frustrate visitors who encounter dead ends.`;
+    }
+
+    case "UX Heuristics": {
+      const touchIssues = findings.filter((f) => f.scanner === "touch-targets").length;
+      if (touchIssues > 0) {
+        return `${touchIssues} interactive element${touchIssues !== 1 ? "s are" : " is"} smaller than the recommended 44x44px minimum. On mobile, this makes your site harder to use and can lead to accidental taps on the wrong element.`;
+      }
+      return `Found ${count} usability issue${count !== 1 ? "s" : ""} that could make your interface harder to navigate. Addressing these will improve the experience for all visitors.`;
+    }
+
+    case "Performance": {
+      const consoleErrors = findings.filter((f) => f.scanner === "console-capture").length;
+      if (consoleErrors > 0) {
+        return `Your page is producing ${consoleErrors} JavaScript error${consoleErrors !== 1 ? "s" : ""}. These can break interactive features, cause visible glitches, and degrade the experience for your visitors.`;
+      }
+      return `Found ${count} performance-related issue${count !== 1 ? "s" : ""} that may slow down your page or affect reliability. Faster pages have higher conversion rates and better search rankings.`;
+    }
+
+    default:
+      return `Found ${count} issue${count !== 1 ? "s" : ""} in this category. Addressing these will improve the overall quality of your page.`;
+  }
+}
+
+function generateStoryCards(result: ScanResult): StoryCard[] {
+  const clusters = buildCategoryClusters(result);
+
+  const cards: StoryCard[] = clusters.map((cluster, index) => ({
+    id: `story-${index}-${cluster.name.toLowerCase().replace(/\s+/g, "-")}`,
+    headline: generateHeadline(cluster.name, cluster.findings, result),
+    narrative: generateNarrative(cluster.name, cluster.findings, result),
+    impact: determineImpact(cluster.findings),
+    category: cluster.name,
+    findingCount: cluster.findings.length,
+    topFindings: getTopFindingTitles(cluster.findings),
+    iconType: CATEGORY_TO_ICON[cluster.name] || "security",
+  }));
+
+  // Sort by impact (critical first), then by finding count
+  const impactOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+  cards.sort((a, b) => {
+    const impactDiff = impactOrder[a.impact] - impactOrder[b.impact];
+    if (impactDiff !== 0) return impactDiff;
+    return b.findingCount - a.findingCount;
+  });
+
+  // Return maximum 6 cards
+  return cards.slice(0, 6);
+}
+
 // ─── Main Export ────────────────────────────────────────────────────
 
 export function generateAnalysis(result: ScanResult): AIAnalysis {
@@ -484,5 +740,6 @@ export function generateAnalysis(result: ScanResult): AIAnalysis {
     hookLine: pickHookLine(result),
     quickWins: generateQuickWins(result),
     pageInsights: generatePageInsights(result),
+    storyCards: generateStoryCards(result),
   };
 }

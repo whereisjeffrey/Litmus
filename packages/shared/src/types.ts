@@ -267,6 +267,19 @@ export interface ConsoleResult {
   findings: Finding[];
 }
 
+// ─── Story Cards ────────────────────────────────────────────────────
+
+export interface StoryCard {
+  id: string;
+  headline: string;
+  narrative: string;
+  impact: "critical" | "high" | "medium" | "low";
+  category: string;
+  findingCount: number;
+  topFindings: string[];
+  iconType: "accessibility" | "ux" | "forms" | "content" | "performance" | "security";
+}
+
 // ─── AI Analysis ───────────────────────────────────────────────────
 
 export interface QuickWin {
@@ -281,6 +294,7 @@ export interface AIAnalysis {
   hookLine: string;
   quickWins: QuickWin[];
   pageInsights: string[];
+  storyCards?: StoryCard[];
 }
 
 // ─── Category Scores ────────────────────────────────────────────────
