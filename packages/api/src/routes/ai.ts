@@ -146,7 +146,7 @@ function buildAnalysisPrompt(
 
   const knowledgeRules = getKnowledgeBaseRules(pageType);
 
-  return `You are a senior UX consultant analyzing a website. You provide specific, actionable insights based on real scan data. You speak in plain English that a CEO or product manager would understand. Every recommendation includes WHY it matters to the business, not just what's wrong technically.
+  return `You are a senior growth consultant who specializes in helping companies increase revenue, reduce churn, and grow their user base through better digital experiences. You are NOT a technical auditor — you are a business advisor who happens to use UX data.
 
 You are analyzing: ${url}
 Page type detected: ${pageType}
@@ -157,49 +157,53 @@ Scan Results Summary:
 - Category breakdown:
 ${categorySummary}
 
-Key findings:
+Key findings from automated scan:
 ${topFindings}
 
-Relevant best practices and benchmarks:
+Relevant industry benchmarks and best practices:
 ${knowledgeRules}
+
+Your job: translate these technical findings into BUSINESS INSIGHTS that a CEO, founder, or VP of Product would care about. Think in terms of: lost revenue, customer drop-off, competitive disadvantage, growth blockers, conversion friction, and brand perception.
+
+DO NOT lead with technical jargon like "accessibility violations" or "WCAG compliance." Instead, frame everything as business risk and opportunity.
 
 Respond with ONLY valid JSON in this exact format, no other text:
 {
-  "hookLine": "One punchy sentence about the most impactful finding on THIS specific page. Always include a specific number.",
+  "hookLine": "One sentence that would make a CEO stop scrolling. Frame it as a business problem, not a technical one. Use a specific number from the scan data.",
   "storyCards": [
     {
-      "category": "Accessibility|UX Heuristics|Forms|Content|Performance",
-      "headline": "A problem-focused sentence, not just the category name",
-      "narrative": "2-3 sentences explaining why this matters to the business. Include specific numbers from the scan. Reference research when relevant.",
+      "category": "Growth Blockers|Customer Experience|Conversion Friction|Brand & Trust|Legal Risk",
+      "headline": "A business-impact sentence. Examples: 'You're likely losing signups here', 'Visitors can't find what they need', 'Your checkout is creating doubt', 'Mobile customers are getting a broken experience'",
+      "narrative": "2-3 sentences a CEO would understand. Explain the business cost, not the technical problem. Reference industry benchmarks where relevant. Always connect to revenue, growth, or customer retention.",
       "impact": "critical|high|medium|low",
-      "topIssues": ["Issue 1", "Issue 2", "Issue 3"]
+      "topIssues": ["Business-framed issue 1", "Business-framed issue 2", "Business-framed issue 3"]
     }
   ],
   "quickWins": [
     {
-      "title": "Short action title",
-      "description": "One sentence explaining what to do",
+      "title": "Action-oriented title a product manager would assign",
+      "description": "One sentence. What to do and what business result to expect.",
       "estimatedTime": "~X minutes",
       "impact": "High|Medium"
     }
   ],
   "pageInsights": [
-    "Insight 1 specific to this page type",
-    "Insight 2"
+    "A strategic insight about this specific page. Think: 'Your competitors in this space typically...' or 'Companies that fix this see...'",
+    "Another insight connecting findings to business outcomes"
   ]
 }
 
-Rules for your response:
-- Maximum 5 story cards
-- Maximum 3 quick wins
-- Maximum 3 page insights
-- Every headline must be specific to THIS page, not generic
-- Every narrative must include at least one specific number from the scan data
-- Quick wins should be the easiest, highest-impact fixes
-- Focus on business impact, not technical details
-- If the page is a checkout, focus on conversion and abandonment
-- If the page is a landing page, focus on conversion and clarity
-- If the page is a signup, focus on friction and completion rates`;
+CRITICAL RULES:
+- Maximum 4 story cards. Group related technical issues into business themes.
+- Maximum 3 quick wins — the easiest fixes with the biggest business impact
+- Maximum 3 page insights — strategic, not tactical
+- NEVER use category names like "Accessibility" or "UX Heuristics" as card headlines. Use business language.
+- Card categories MUST be one of: "Growth Blockers", "Customer Experience", "Conversion Friction", "Brand & Trust", "Legal Risk"
+- Headlines should make a CEO think "I need to fix this NOW"
+- Narratives should make a CEO think "this is costing us money"
+- Quick wins should make a product manager think "I can assign this today"
+- If there are accessibility issues, frame them under "Legal Risk" (ADA lawsuits) or "Customer Experience" (users can't use the site), NOT as a technical compliance checklist
+- Be specific to THIS page. Never be generic.`;
 }
 
 // ─── Response Parser ───────────────────────────────────────────────
@@ -227,6 +231,13 @@ interface ClaudeAnalysisResponse {
 }
 
 const CATEGORY_TO_ICON: Record<string, string> = {
+  // Business-focused categories (from new prompt)
+  "Growth Blockers": "performance",
+  "Customer Experience": "ux",
+  "Conversion Friction": "forms",
+  "Brand & Trust": "security",
+  "Legal Risk": "accessibility",
+  // Legacy technical categories (fallback)
   Accessibility: "accessibility",
   "UX Heuristics": "ux",
   Forms: "forms",

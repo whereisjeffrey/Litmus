@@ -28,9 +28,35 @@ const SCANNER_CATEGORY: Record<string, string> = {
   "meta-checker": "Content",
   "touch-targets": "UX Heuristics",
   "console-capture": "Performance",
+  "ux-heuristics": "UX Heuristics",
+  "ux-heuristics-forms": "Forms",
+  "ux-heuristics-a11y": "Accessibility",
+  "ux-heuristics-content": "Content",
+  "page-specific": "UX Heuristics",
+};
+
+// Business-focused categories map to underlying technical categories
+const BUSINESS_TO_TECHNICAL: Record<string, string[]> = {
+  "Growth Blockers": ["UX Heuristics", "Performance", "Content"],
+  "Customer Experience": ["UX Heuristics", "Accessibility", "Forms"],
+  "Conversion Friction": ["Forms", "UX Heuristics"],
+  "Brand & Trust": ["Content", "Performance", "UX Heuristics"],
+  "Legal Risk": ["Accessibility"],
 };
 
 function getFindingsForCategory(result: ScanResult, category: string): Finding[] {
+  // Check if this is a business-focused category from AI
+  const technicalCategories = BUSINESS_TO_TECHNICAL[category];
+
+  if (technicalCategories) {
+    // Map business category to all related technical findings
+    return result.allFindings.filter((f) => {
+      const mapped = SCANNER_CATEGORY[f.scanner] || f.scanner;
+      return technicalCategories.includes(mapped);
+    });
+  }
+
+  // Direct technical category match
   return result.allFindings.filter((f) => {
     const mapped = SCANNER_CATEGORY[f.scanner] || f.scanner;
     return mapped === category;
