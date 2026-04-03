@@ -1,9 +1,8 @@
 import { Hono } from "hono";
-import Anthropic from "@anthropic-ai/sdk";
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
 export const aiRoutes = new Hono();
 
@@ -289,13 +288,14 @@ const CATEGORY_TO_ICON: Record<string, string> = {
 };
 
 function parseAnalysisResponse(text: string) {
-  // Try to extract JSON from the response (handle markdown code blocks)
   let jsonStr = text.trim();
-  const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (jsonMatch) {
-    jsonStr = jsonMatch[1].trim();
-  }
 
+  // Always extract JSON by finding first { and last }
+  const firstBrace = jsonStr.indexOf("{");
+  const lastBrace = jsonStr.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
+    jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+  }
   const parsed: ClaudeAnalysisResponse = JSON.parse(jsonStr);
 
   // Map story cards to our StoryCard type with generated IDs and iconTypes
@@ -342,15 +342,29 @@ aiRoutes.post("/analyze", async (c) => {
     // Build the prompt with knowledge base context
     const prompt = buildAnalysisPrompt(scanData, pageType, url);
 
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2000,
-      messages: [{ role: "user", content: prompt }],
+    const geminiResponse = await fetch(GEMINI_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          maxOutputTokens: 8000,
+          temperature: 0.7,
+        },
+      }),
     });
 
-    // Extract text from the response
-    const textBlock = response.content.find((block) => block.type === "text");
-    const responseText = textBlock && textBlock.type === "text" ? textBlock.text : "";
+    if (!geminiResponse.ok) {
+      const errBody = await geminiResponse.text();
+      console.error("Gemini API error:", geminiResponse.status, errBody);
+      return c.json({ error: "AI analysis failed", detail: errBody }, 500);
+    }
+
+    const geminiData = await geminiResponse.json() as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    };
+
+    const responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     if (!responseText) {
       return c.json({ error: "Empty response from AI" }, 500);
