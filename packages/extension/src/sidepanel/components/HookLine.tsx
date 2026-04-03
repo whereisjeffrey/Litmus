@@ -29,7 +29,6 @@ export default function HookLine({ hookLine, quickWins }: HookLineProps) {
             fill="none"
             stroke="#2563EB"
             strokeWidth="2"
-            strokeWidth="0.5"
           />
           <circle cx="19" cy="5" r="1.2" fill="#60A5FA" />
         </svg>

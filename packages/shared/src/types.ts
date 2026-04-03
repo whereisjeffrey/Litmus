@@ -328,6 +328,26 @@ export interface ScanResult {
   allFindings: Finding[];
 
   aiAnalysis?: AIAnalysis;
+  consultantReport?: ConsultantReport;
+}
+
+// ─── Consultant Report (CEO-level insights) ─────────────────────────
+
+export interface TopInsight {
+  headline: string;
+  impact: string;
+  category: string;
+  severity: "high" | "medium" | "low";
+  locked: boolean;
+  fixes: string[];
+  research: string;
+}
+
+export interface ConsultantReport {
+  topInsights: TopInsight[];
+  executiveSummary: string;
+  industryBenchmark: string;
+  detectedIndustry: string;
 }
 
 // ─── Messages between extension layers ──────────────────────────────
