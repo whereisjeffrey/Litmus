@@ -34,89 +34,118 @@ interface AnalyzeRequestBody {
   url: string;
 }
 
-// ─── Knowledge base rules (hardcoded for runtime access) ───────────
+// ─── Industry Detection ─────────────────────────────────────────────
 
-const CHECKOUT_RULES = `
-- Minimize form field count. Benchmark is 7 fields across 3 steps. Each additional field reduces completion by ~10%. (Baymard Institute)
-- Guest checkout must be available. 24% of users abandon when forced to create an account.
-- Use single column form layout. Multi-column layouts produce 22% more errors (CXL Institute).
-- Inline validation reduces errors by 22% and increases completion by 31%.
-- Error messages must be specific and placed near the problematic field. 67% of users who encounter confusing errors abandon.
-- Auto-format credit card numbers with spaces. Numbers without spaces cause 30% more typos.
-- Multi-step checkout needs a progress indicator. Users who see progress are 20% more likely to complete.
-- Show order summary at all times during checkout. Users who can't see their cart abandon 12% more.
-- Trust signals (security badges, SSL) near payment fields reduce abandonment by 42%.
-- Offer multiple payment methods. 9% of users abandon if their preferred payment method isn't available.
-`;
+const INDUSTRY_SIGNALS: Record<string, { keywords: string[]; urlPatterns: string[] }> = {
+  saas: {
+    keywords: ["free trial", "pricing", "enterprise", "integrations", "api", "dashboard", "workflow", "automation", "saas", "subscribe", "plan", "tier", "per month", "per user", "onboarding", "demo", "features"],
+    urlPatterns: ["app.", "dashboard.", "admin."],
+  },
+  ecommerce: {
+    keywords: ["add to cart", "buy now", "checkout", "shipping", "free shipping", "product", "shop", "store", "price", "sale", "discount", "size", "color", "quantity", "review", "wishlist", "returns"],
+    urlPatterns: ["shop.", "store.", "products/", "collections/"],
+  },
+  fintech: {
+    keywords: ["banking", "investment", "portfolio", "loan", "mortgage", "interest rate", "apr", "credit score", "account", "transfer", "payment", "fintech", "insurance", "crypto", "trading"],
+    urlPatterns: ["bank.", "finance.", "invest.", "pay."],
+  },
+  medical: {
+    keywords: ["patient", "doctor", "appointment", "health", "medical", "clinic", "hospital", "pharmacy", "hipaa", "provider", "telehealth", "symptoms"],
+    urlPatterns: ["health.", "medical.", "patient.", "care."],
+  },
+  "professional-services": {
+    keywords: ["attorney", "lawyer", "law firm", "accounting", "cpa", "consulting", "advisory", "practice areas", "case study", "consultation", "expertise"],
+    urlPatterns: ["law.", "legal.", "consult."],
+  },
+  "real-estate": {
+    keywords: ["listing", "property", "real estate", "home", "house", "apartment", "rent", "buy", "sell", "mortgage", "mls", "bedrooms", "agent", "broker", "virtual tour"],
+    urlPatterns: ["realty.", "homes.", "property."],
+  },
+};
 
-const LANDING_RULES = `
-- Value proposition must be clear within 5 seconds. Unclear value props are the #1 reason landing pages fail (Unbounce).
-- Single primary CTA visible above the fold. Pages with one CTA have 13.5% higher conversion than pages with multiple CTAs.
-- Headline should address a pain point. Problem-focused headlines convert 28% better than product-descriptive ones.
-- Subheadline should explain "how." Subheadlines that explain mechanism generate 30% more engagement.
-- Hero image/video must be relevant to value prop. Relevant hero images increase conversion by 40% vs generic stock.
-- No slider/carousel in hero. Only 1% of users interact with carousels (Notre Dame study).
-- CTA text should be specific and action-oriented ("Start Free Trial" not "Submit").
-- Social proof (testimonials, logos, stats) should be present. Pages with social proof convert 34% higher.
-- Remove navigation distractions. Landing pages without nav links convert 100% better (VWO study).
-- Page load under 3 seconds. Each second of delay reduces conversion by 7%.
-- Mobile-responsive layout. 60%+ of landing page traffic is mobile.
-- Benefit-focused copy over feature lists. Benefits answer "so what?" for the visitor.
-`;
+function detectIndustry(url: string, pageType: string, findings: ScanFinding[]): string {
+  const allText = `${url} ${pageType} ${findings.map(f => f.title + " " + f.description).join(" ")}`.toLowerCase();
+  const scores: Record<string, number> = {};
 
-const SIGNUP_RULES = `
-- Minimize fields to essentials (email + password minimum). Each extra field reduces signups by 5-10%.
-- Social login options reduce friction by 50%+ for returning users.
-- Password requirements shown upfront, not after submission.
-- Show/hide password toggle increases completion by 15%.
-- Autocomplete attributes let browsers pre-fill, reducing friction by 30%.
-- Clear value reminder near the form — remind users what they're signing up for.
-- Best-in-class signup forms use 3-5 fields maximum.
-- Real-time email validation prevents typos in the most critical field.
-`;
-
-const UNIVERSAL_RULES = `
-- Color contrast must meet WCAG AA (4.5:1 for normal text, 3:1 for large text). 1 in 12 men have color vision deficiency.
-- All images need alt text. Missing alt makes images invisible to screen readers and hurts SEO.
-- Form fields need associated labels. Placeholder text alone is not sufficient.
-- Heading hierarchy must be sequential (H1 > H2 > H3). Screen readers use headings for navigation.
-- Touch targets must be 44x44px minimum. Smaller targets cause mis-taps on mobile.
-- Page must have a single H1 element. Multiple H1s dilute focus for search engines.
-- Meta description 150-160 characters for optimal search result display.
-- Open Graph tags needed for social media sharing previews.
-- Language attribute on <html> tag required for screen reader pronunciation.
-- Focus indicators must be visible for keyboard navigation.
-`;
-
-function getKnowledgeBaseRules(pageType: string): string {
-  const pt = pageType.toLowerCase();
-  let rules = UNIVERSAL_RULES;
-
-  if (pt.includes("checkout")) {
-    rules += "\nCheckout-specific rules:\n" + CHECKOUT_RULES;
-  } else if (pt.includes("landing") || pt.includes("homepage")) {
-    rules += "\nLanding page-specific rules:\n" + LANDING_RULES;
-  } else if (pt.includes("signup") || pt.includes("register") || pt.includes("login")) {
-    rules += "\nSignup/Login-specific rules:\n" + SIGNUP_RULES;
-  } else if (pt.includes("pricing")) {
-    rules += `\nPricing page-specific rules:
-- Highlight a recommended plan. Pages that highlight a plan see 20% higher conversion.
-- Offer annual/monthly toggle. Annual plans save customers 15-20% on average.
-- Use comparison tables for feature clarity.
-- Show pricing in visitor's currency when possible.
-- Include FAQ section to address objections.
-`;
-  } else if (pt.includes("product")) {
-    rules += `\nProduct page-specific rules:
-- Use 4-8 product images including lifestyle shots and zoom views.
-- Products with customer reviews convert 270% better.
-- Show clear pricing and availability above the fold.
-- Include trust signals near the Add to Cart button.
-- Size/variant selection must be clear before add to cart.
-`;
+  for (const [industry, signals] of Object.entries(INDUSTRY_SIGNALS)) {
+    let score = 0;
+    for (const keyword of signals.keywords) {
+      if (allText.includes(keyword)) score += 1;
+    }
+    for (const pattern of signals.urlPatterns) {
+      if (url.toLowerCase().includes(pattern)) score += 3;
+    }
+    scores[industry] = score;
   }
 
-  return rules;
+  const sorted = Object.entries(scores).sort(([, a], [, b]) => b - a);
+  return sorted[0][1] >= 3 ? sorted[0][0] : "general";
+}
+
+// ─── Industry Expertise Context ─────────────────────────────────────
+
+function getIndustryExpertise(industry: string): string {
+  const expertise: Record<string, string> = {
+    saas: `You specialize in SaaS. Key benchmarks:
+- Free trial conversion: 15-25% (Totango)
+- Each signup field removed: +10% conversion (Imagescape)
+- 55% of visitors spend <15 seconds on page (Microsoft)
+- Transparent pricing companies grow 2x faster (OpenView)
+- Single CTA pages: 13.5% conversion vs 2.8% for 5+ CTAs (Unbounce)
+- Onboarding completion: top quartile hits 80% (Userpilot)`,
+    ecommerce: `You specialize in e-commerce. Key benchmarks:
+- Cart abandonment: 70.19% average (Baymard 2023)
+- 24% abandon when forced to create account (Baymard)
+- 48% abandon due to surprise costs (shipping, tax)
+- Guest checkout increases conversion 45% (Baymard)
+- Product pages with 5+ images: +40% conversion (Shopify)
+- Return policy visibility reduces abandonment 17% (UPS/comScore)`,
+    fintech: `You specialize in fintech. Key benchmarks:
+- 81% say trust is deciding factor (Edelman)
+- Security badges: +42% conversion (Blue Fountain Media)
+- KYC abandonment: 40-50% for complex flows (Signicat)
+- Financial calculators: +3x time-on-site, +25% conversion (HubSpot)
+- 41% switch banks due to poor UX (J.D. Power)`,
+    medical: `You specialize in healthcare. Key benchmarks:
+- 77% search before booking appointment (Google Health)
+- Online scheduling: +24% bookings (Accenture)
+- 88% consider online reviews for providers (Software Advice)
+- HIPAA violations: $100-$50,000 per incident
+- 60% will switch providers for better digital experience (NRC Health)`,
+    "professional-services": `You specialize in professional services. Key benchmarks:
+- 75% judge credibility by website design (Stanford)
+- Case studies generate 70% more leads (CMI)
+- Online booking: +30% intake conversion (Clio)
+- 80% of buyers check credentials before contact (Hinge)
+- Specialized firms grow 8x faster than generalists (Hinge)`,
+    "real-estate": `You specialize in real estate. Key benchmarks:
+- 97% of buyers use internet in search (NAR 2023)
+- Virtual tours: +87% more views (Realtor.com)
+- 76% found home on mobile device (NAR)
+- Properties with 20+ photos sell 32% faster (Redfin)
+- Agent video intros: +403% more inquiries (BombBomb)`,
+    general: `You evaluate websites across industries. Key benchmarks:
+- 88% less likely to return after bad experience (Gomez)
+- 1-second load delay: -7% conversions (Akamai)
+- 75% judge credibility by design (Stanford)
+- Clear CTAs: +161% conversion (HubSpot)
+- 55% spend <15 seconds on page (Microsoft)`,
+  };
+  return expertise[industry] || expertise.general;
+}
+
+// ─── Page Type Context ──────────────────────────────────────────────
+
+function getPageContext(pageType: string): string {
+  const pt = pageType.toLowerCase();
+  if (pt.includes("landing") || pt.includes("homepage")) return "The #1 job: convert visitors into leads/signups. Evaluate: 5-second clarity, CTA design, social proof, persuasion structure.";
+  if (pt.includes("pricing")) return "The #1 job: help visitors choose a plan. Evaluate: plan highlighting, comparison clarity, annual toggle, trust signals.";
+  if (pt.includes("checkout")) return "The #1 job: complete the purchase with zero friction. Evaluate: field count (7 max), guest checkout, shipping transparency, trust badges.";
+  if (pt.includes("signup") || pt.includes("register")) return "The #1 job: get users into the product. Evaluate: field count (3 max), social login, immediate value delivery.";
+  if (pt.includes("product")) return "The #1 job: convince visitor to buy. Evaluate: images (5+), price prominence, reviews, return policy visibility.";
+  if (pt.includes("blog") || pt.includes("article")) return "The #1 job: keep readers engaged and drive action. Evaluate: readability, CTAs, social sharing, content structure.";
+  if (pt.includes("dashboard") || pt.includes("app")) return "The #1 job: help users accomplish tasks efficiently. Evaluate: empty states, onboarding, navigation, loading states.";
+  return "Evaluate this page for business impact: clarity, conversion potential, trust signals, user experience.";
 }
 
 // ─── Prompt Builder ────────────────────────────────────────────────
@@ -126,6 +155,10 @@ function buildAnalysisPrompt(
   pageType: string,
   url: string
 ): string {
+  const industry = detectIndustry(url, pageType, scanData.allFindings);
+  const industryExpertise = getIndustryExpertise(industry);
+  const pageContext = getPageContext(pageType);
+
   // Summarize findings by category
   const categorySummary = scanData.categories
     .map((cat) => `  - ${cat.name}: score ${Math.round(cat.score)}/100, ${cat.findingsCount} findings`)
@@ -136,74 +169,84 @@ function buildAnalysisPrompt(
   const warningCount = scanData.allFindings.filter((f) => f.severity === "warning").length;
   const infoCount = scanData.allFindings.filter((f) => f.severity === "info").length;
 
-  // Top 10 most impactful findings
+  // Top 15 most impactful findings
   const severityOrder: Record<string, number> = { critical: 0, warning: 1, info: 2 };
   const topFindings = [...scanData.allFindings]
     .sort((a, b) => (severityOrder[a.severity] ?? 2) - (severityOrder[b.severity] ?? 2))
-    .slice(0, 10)
+    .slice(0, 15)
     .map((f) => `  - [${f.severity.toUpperCase()}] ${f.title}: ${f.description}`)
     .join("\n");
 
-  const knowledgeRules = getKnowledgeBaseRules(pageType);
+  return `You are a senior UX consultant who specializes in ${industry === "general" ? "digital businesses" : industry.replace("-", " ")} companies. A client has hired you to evaluate their ${pageType} and identify the issues most likely costing them money and customers.
 
-  return `You are a senior growth consultant who specializes in helping companies increase revenue, reduce churn, and grow their user base through better digital experiences. You are NOT a technical auditor — you are a business advisor who happens to use UX data.
+You are NOT a technical auditor. You are a business consultant. Your job is to tell the CEO what's wrong in language they care about: revenue, customers, competitive advantage, growth.
 
-You are analyzing: ${url}
-Page type detected: ${pageType}
+## Your Industry Expertise
+${industryExpertise}
 
-Scan Results Summary:
-- Overall Score: ${scanData.overallScore}/100
-- ${criticalCount} critical issues, ${warningCount} warnings, ${infoCount} info items
-- Category breakdown:
+## Page Context
+${pageContext}
+
+## The Client's Page
+URL: ${url}
+Page Type: ${pageType}
+Detected Industry: ${industry}
+Overall Score: ${scanData.overallScore}/100
+
+Category breakdown:
 ${categorySummary}
 
-Key findings from automated scan:
+Severity: ${criticalCount} critical, ${warningCount} warnings, ${infoCount} info
+
+Top findings from automated scan:
 ${topFindings}
 
-Relevant industry benchmarks and best practices:
-${knowledgeRules}
+## Your Task
 
-Your job: translate these technical findings into BUSINESS INSIGHTS that a CEO, founder, or VP of Product would care about. Think in terms of: lost revenue, customer drop-off, competitive disadvantage, growth blockers, conversion friction, and brand perception.
+Identify the 3-5 issues most likely COSTING THIS BUSINESS MONEY OR CUSTOMERS. Frame every insight as a business problem, not a technical one.
 
-DO NOT lead with technical jargon like "accessibility violations" or "WCAG compliance." Instead, frame everything as business risk and opportunity.
+## Rules
 
-Respond with ONLY valid JSON in this exact format, no other text:
+1. NEVER use technical jargon in headlines. No "WCAG", "alt text", "meta tag", "heading hierarchy", "contrast ratio". Those are engineer terms.
+2. Every headline must make a CEO lean forward. It must imply money lost or customers lost.
+3. Every impact statement must include a SPECIFIC research citation with source name and year.
+4. Do NOT include trivial issues. Missing alt text on a decorative image is not CEO-level. A broken signup flow IS.
+5. Rank by estimated business impact. The biggest money-loser goes first.
+6. Be specific to THIS page. Reference actual findings from the scan data.
+7. If the page is actually good (85+), say so. Don't manufacture problems.
+8. Group related technical issues into one business-impact card. "12 missing alt texts + 3 contrast issues" = one "Legal Risk" card, not two.
+9. Frame accessibility under "Legal Risk" (ADA lawsuits cost $10K-$50K) or "Customer Experience" (users literally can't use your site).
+
+## Output Format
+
+Respond with ONLY valid JSON, no markdown, no explanation:
+
 {
-  "hookLine": "One sentence that would make a CEO stop scrolling. Frame it as a business problem, not a technical one. Use a specific number from the scan data.",
+  "hookLine": "One sentence that makes a CEO stop scrolling. Use a specific number from the scan. Frame as business problem, not technical issue.",
   "storyCards": [
     {
       "category": "Growth Blockers|Customer Experience|Conversion Friction|Brand & Trust|Legal Risk",
-      "headline": "A business-impact sentence. Examples: 'You're likely losing signups here', 'Visitors can't find what they need', 'Your checkout is creating doubt', 'Mobile customers are getting a broken experience'",
-      "narrative": "2-3 sentences a CEO would understand. Explain the business cost, not the technical problem. Reference industry benchmarks where relevant. Always connect to revenue, growth, or customer retention.",
+      "headline": "Plain English. Examples: 'Your signup process is turning away customers', 'Mobile visitors are getting a broken experience', 'Your checkout is creating doubt'",
+      "narrative": "2-3 sentences a CEO would understand. Explain what this is costing them. Include a research citation with source name. Connect to revenue, growth, or customer retention.",
       "impact": "critical|high|medium|low",
-      "topIssues": ["Business-framed issue 1", "Business-framed issue 2", "Business-framed issue 3"]
+      "topIssues": ["Business-framed issue with research stat", "Another issue with specific number", "Third issue tied to business outcome"]
     }
   ],
   "quickWins": [
     {
-      "title": "Action-oriented title a product manager would assign",
-      "description": "One sentence. What to do and what business result to expect.",
+      "title": "Action a product manager would assign today",
+      "description": "What to do and what business result to expect. Include a stat.",
       "estimatedTime": "~X minutes",
       "impact": "High|Medium"
     }
   ],
   "pageInsights": [
-    "A strategic insight about this specific page. Think: 'Your competitors in this space typically...' or 'Companies that fix this see...'",
+    "Strategic insight specific to this page and industry",
     "Another insight connecting findings to business outcomes"
   ]
 }
 
-CRITICAL RULES:
-- Maximum 4 story cards. Group related technical issues into business themes.
-- Maximum 3 quick wins — the easiest fixes with the biggest business impact
-- Maximum 3 page insights — strategic, not tactical
-- NEVER use category names like "Accessibility" or "UX Heuristics" as card headlines. Use business language.
-- Card categories MUST be one of: "Growth Blockers", "Customer Experience", "Conversion Friction", "Brand & Trust", "Legal Risk"
-- Headlines should make a CEO think "I need to fix this NOW"
-- Narratives should make a CEO think "this is costing us money"
-- Quick wins should make a product manager think "I can assign this today"
-- If there are accessibility issues, frame them under "Legal Risk" (ADA lawsuits) or "Customer Experience" (users can't use the site), NOT as a technical compliance checklist
-- Be specific to THIS page. Never be generic.`;
+LIMITS: Max 5 storyCards, max 3 quickWins, max 3 pageInsights. First 2 storyCards are visible to free users, rest are locked for Pro.`;
 }
 
 // ─── Response Parser ───────────────────────────────────────────────
