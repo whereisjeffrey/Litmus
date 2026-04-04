@@ -1,8 +1,9 @@
 import { Hono } from "hono";
+import Anthropic from "@anthropic-ai/sdk";
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = "gemini-2.5-flash";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
 export const aiRoutes = new Hono();
 
@@ -342,29 +343,13 @@ aiRoutes.post("/analyze", async (c) => {
     // Build the prompt with knowledge base context
     const prompt = buildAnalysisPrompt(scanData, pageType, url);
 
-    const geminiResponse = await fetch(GEMINI_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          maxOutputTokens: 8000,
-          temperature: 0.7,
-        },
-      }),
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 4000,
+      messages: [{ role: "user", content: prompt }],
     });
 
-    if (!geminiResponse.ok) {
-      const errBody = await geminiResponse.text();
-      console.error("Gemini API error:", geminiResponse.status, errBody);
-      return c.json({ error: "AI analysis failed", detail: errBody }, 500);
-    }
-
-    const geminiData = await geminiResponse.json() as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    };
-
-    const responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const responseText = message.content[0].type === "text" ? message.content[0].text : "";
 
     if (!responseText) {
       return c.json({ error: "Empty response from AI" }, 500);

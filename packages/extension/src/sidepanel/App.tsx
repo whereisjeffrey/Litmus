@@ -107,11 +107,16 @@ export default function App() {
           // Try AI analysis in background
           setAiLoading(true);
           apiClient.analyzeWithAI(message.result).then((aiResult) => {
-            if (aiResult) {
+            console.log("[AI] analyzeWithAI result:", aiResult ? "got data" : "null", aiResult ? Object.keys(aiResult) : []);
+            if (aiResult && aiResult.storyCards && aiResult.storyCards.length > 0) {
               setScanResult((prev) =>
-                prev ? { ...prev, aiAnalysis: aiResult } : prev
+                prev ? { ...prev, aiAnalysis: { ...prev.aiAnalysis, ...aiResult } as any } : prev
               );
+              console.log("[AI] Updated scan result with AI data, storyCards:", aiResult.storyCards.length);
             }
+            setAiLoading(false);
+          }).catch((err) => {
+            console.error("[AI] analyzeWithAI failed:", err);
             setAiLoading(false);
           });
           break;
