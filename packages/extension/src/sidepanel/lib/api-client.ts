@@ -65,9 +65,12 @@ export const apiClient = {
 
   async captureScreenshot(): Promise<string | null> {
     try {
+      console.log("[AI] Requesting screenshot from service worker...");
       const response = await chrome.runtime.sendMessage({ type: "CAPTURE_SCREENSHOT" });
+      console.log("[AI] Screenshot response:", response?.dataUrl ? `got ${response.dataUrl.length} chars` : "null/empty");
       return response?.dataUrl || null;
-    } catch {
+    } catch (err) {
+      console.error("[AI] Screenshot capture error:", err);
       return null;
     }
   },

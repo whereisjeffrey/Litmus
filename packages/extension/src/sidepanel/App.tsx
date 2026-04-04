@@ -8,6 +8,7 @@ import PlaceholderBox from "./components/PlaceholderBox";
 import HookLine from "./components/HookLine";
 import StoryCardView from "./components/StoryCardView";
 import CategoryDetailView from "./components/CategoryDetailView";
+import TopInsightsCard from "./components/TopInsightsCard";
 import { apiClient } from "./lib/api-client";
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -294,42 +295,29 @@ export default function App() {
                 animated={true}
               />
 
-              {/* AI Hook Line & Quick Wins */}
-              {scanResult?.aiAnalysis ? (
-                <>
-                  <HookLine
-                    key={`hookline-${aiVersion}`}
-                    hookLine={scanResult.aiAnalysis.hookLine}
-                    quickWins={scanResult.aiAnalysis.quickWins}
-                  />
-                  {aiLoading && (
-                    <p className="text-2xs text-accent-500 animate-pulse text-center -mt-2">
-                      AI enhancing analysis...
-                    </p>
-                  )}
-                </>
+              {/* TOP INSIGHTS — "What's Costing You Customers" */}
+              {scanResult?.aiAnalysis?.storyCards && scanResult.aiAnalysis.storyCards.length > 0 ? (
+                <TopInsightsCard
+                  key={`top-insights-${aiVersion}`}
+                  storyCards={scanResult.aiAnalysis.storyCards}
+                  onViewDetails={(category) => setDrillDownCategory(category)}
+                />
               ) : aiLoading ? (
                 <div className="rounded-xl bg-accent-50 border border-accent-100 p-4 text-center">
                   <p className="text-xs text-accent-600 animate-pulse">
-                    AI analyzing your page...
+                    Analyzing your page as a customer would...
                   </p>
                 </div>
-              ) : (
-                <PlaceholderBox label="Hook Line" height={60} />
-              )}
+              ) : null}
 
-              {/* Story Cards */}
-              {scanResult?.aiAnalysis?.storyCards && (
-                <StoryCardView
-                  key={`stories-${aiVersion}`}
-                  storyCards={scanResult.aiAnalysis.storyCards}
-                  result={scanResult}
-                  onDrillDown={(category) => setDrillDownCategory(category)}
+              {/* Smart Insight + Priorities (below top insights) */}
+              {scanResult?.aiAnalysis && (
+                <HookLine
+                  key={`hookline-${aiVersion}`}
+                  hookLine={scanResult.aiAnalysis.hookLine}
+                  quickWins={scanResult.aiAnalysis.quickWins}
                 />
               )}
-
-              {/* Placeholder: Pro Upsell */}
-              <PlaceholderBox label="Pro Upsell" height={120} />
 
               {/* Footer */}
               <div className="text-center pt-3 pb-4 border-t border-surface-200">

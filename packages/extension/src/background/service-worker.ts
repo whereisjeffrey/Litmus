@@ -35,10 +35,17 @@ chrome.runtime.onMessage.addListener(
   ) => {
     // Screenshot request from side panel
     if (message.type === "CAPTURE_SCREENSHOT" && !sender.tab) {
-      captureScreenshot().then((dataUrl) => {
-        sendResponse({ dataUrl });
-      });
-      return true; // async response
+      (async () => {
+        try {
+          const dataUrl = await captureScreenshot();
+          console.log("[SW] Screenshot captured:", dataUrl ? `${dataUrl.length} chars` : "null");
+          sendResponse({ dataUrl });
+        } catch (err) {
+          console.error("[SW] Screenshot error:", err);
+          sendResponse({ dataUrl: null });
+        }
+      })();
+      return true; // keep channel open for async response
     }
 
     // Message from the side panel → forward to content script

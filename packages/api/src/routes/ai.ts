@@ -193,64 +193,50 @@ function buildAnalysisPrompt(
     .map((f) => `  - [${f.severity.toUpperCase()}] ${f.title}: ${f.description}`)
     .join("\n");
 
-  return `You are a senior UX consultant who specializes in ${industry === "general" ? "digital businesses" : industry.replace("-", " ")} companies. A client has hired you to evaluate their ${pageType}.
+  return `LOOK AT THE SCREENSHOT. That is a real website. You are visiting it right now as a potential customer for the first time.
 
-## YOUR ROLE
-
-You are NOT a code auditor. You are NOT scanning HTML. You are a BUSINESS CONSULTANT who is looking at this website AS A POTENTIAL CUSTOMER WOULD.
-
-Pretend you are:
+You are this person:
 ${getCustomerPersona(industry, pageType)}
 
-You just landed on this page for the first time. You've never seen this company before. Look at the screenshot and ask yourself:
-- Can I tell what this company does within 5 seconds?
-- Can I find what I'm looking for?
-- Do I trust this company?
-- Is the path to my goal (buy, sign up, contact, search) clear and obvious?
-- What would confuse me or make me leave?
-- What's missing that I'd expect to see?
-- Does the visual design feel professional and current?
-- Is the messaging clear, specific, and compelling — or vague and forgettable?
+You have 30 seconds. What do you see? What confuses you? What would make you leave? What's missing?
 
-## Your Industry Expertise
+DO NOT talk about code, HTML, JavaScript errors, alt text, contrast ratios, meta tags, or any technical scan findings. IGNORE the technical data below unless it directly relates to something you can SEE in the screenshot that would affect a real customer.
+
+## What to evaluate (LOOK AT THE SCREENSHOT for each one):
+
+1. FIRST IMPRESSION: Within 5 seconds, can you tell what this company does and why you should care? Is the headline specific or generic fluff?
+
+2. FINDING WHAT YOU NEED: Can you easily find the main action? (search for properties, add to cart, sign up, book appointment) Is it obvious or buried?
+
+3. TRUST: Would you give this company your money or personal information? Do you see testimonials, reviews, credentials, security indicators? Or does it feel anonymous?
+
+4. NAVIGATION: Does the menu make sense? Are labels in YOUR language (the customer's) or in company jargon? Can you find pricing, contact, help?
+
+5. MESSAGING: Is the copy compelling or forgettable? Does it talk about YOUR problems or just list THEIR features? Is there too much text or not enough?
+
+6. VISUAL DESIGN: Does this look like a company you'd trust with your money? Does it look modern or outdated? Is the layout clean or cluttered?
+
+7. MOBILE: If this were on a phone, would it work? Are buttons big enough? Is text readable?
+
+8. WHAT'S MISSING: What would you EXPECT to see on a ${industry === "general" ? "" : industry.replace("-", " ") + " "}website that isn't here?
+
+## Industry context
 ${industryExpertise}
 
-## Page Context
-${pageContext}
+## URL: ${url}
+## Page type: ${pageType}
 
-## Technical Scan Data (supplementary — NOT your primary source)
-URL: ${url}
-Page Type: ${pageType}
-Detected Industry: ${industry}
-Overall Score: ${scanData.overallScore}/100
+## Background technical data (DO NOT lead with this — only mention if it connects to something you SEE)
+Score: ${scanData.overallScore}/100. ${criticalCount} critical issues, ${warningCount} warnings found by automated scan.
 
-Category breakdown:
-${categorySummary}
+## CRITICAL INSTRUCTIONS
 
-Severity: ${criticalCount} critical, ${warningCount} warnings, ${infoCount} info
-
-Top findings from automated scan:
-${topFindings}
-
-## Your Task
-
-Based PRIMARILY on what you SEE in the screenshot (the visual design, layout, messaging, clarity, trust signals, user flow), and supplemented by the technical scan data, identify the 3-5 issues most likely COSTING THIS BUSINESS MONEY OR CUSTOMERS.
-
-PRIORITIZE qualitative issues (confusing layout, unclear messaging, missing trust signals, poor visual hierarchy, buried CTAs, confusing navigation, weak copy, lack of social proof) OVER technical issues (missing HTML attributes, contrast ratios, heading hierarchy).
-
-Technical issues should only appear if they have DIRECT customer impact (e.g., "the search button is invisible" not "the button has low contrast ratio").
-
-## Rules
-
-1. NEVER use technical jargon in headlines. No "WCAG", "alt text", "meta tag", "heading hierarchy", "contrast ratio", "form labels", "autocomplete". Those are engineer terms.
-2. Every headline must make a CEO lean forward. Frame as revenue, customers, or competitive advantage.
-3. Every impact statement must include a SPECIFIC research citation with source name.
-4. Be specific to THIS page. Reference what you actually SEE — specific elements, text, images, layout choices.
-5. If the page is actually good (85+), say so. Don't manufacture problems.
-6. Focus on the BIG things. "Your hero section doesn't explain what you do" is more important than "one image is missing alt text."
-7. Write as if you're presenting findings to a CEO in a boardroom, not filing a bug report.
-8. Include at least one insight about the MESSAGING/COPY on the page — is it clear, compelling, and customer-focused?
-9. Include at least one insight about the VISUAL DESIGN — does it look modern, trustworthy, and professional?
+- Your response must be based on what you SEE IN THE SCREENSHOT, not the technical scan data
+- Write like you're talking to the CEO: "Your homepage doesn't tell visitors what you do" NOT "Missing H1 heading tag"
+- Every insight must reference something VISIBLE in the screenshot — a specific section, element, image, text, or missing element
+- Include research citations where relevant (Baymard Institute, Nielsen Norman Group, NAR, etc.)
+- If you can't see the screenshot clearly, still evaluate based on what you can determine from the URL and page type
+- DO NOT mention JavaScript errors, missing alt text, heading hierarchy, form labels, autocomplete attributes, or any HTML-level issues unless they cause something visually broken that a customer would notice
 
 ## Output Format
 
@@ -326,12 +312,20 @@ const CATEGORY_TO_ICON: Record<string, string> = {
 function parseAnalysisResponse(text: string) {
   let jsonStr = text.trim();
 
-  // Always extract JSON by finding first { and last }
+  // Strip markdown code fences if present
+  jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
+
+  // Extract JSON by finding first { and last }
   const firstBrace = jsonStr.indexOf("{");
   const lastBrace = jsonStr.lastIndexOf("}");
   if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
     jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
   }
+
+  // Remove any remaining backticks that might be inside
+  jsonStr = jsonStr.replace(/```/g, "");
+
+  console.log("[AI] Parsing response, length:", jsonStr.length, "starts with:", jsonStr.substring(0, 50));
   const parsed: ClaudeAnalysisResponse = JSON.parse(jsonStr);
 
   // Map story cards to our StoryCard type with generated IDs and iconTypes
