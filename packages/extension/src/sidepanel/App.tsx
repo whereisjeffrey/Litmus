@@ -84,6 +84,7 @@ export default function App() {
   const [viewportMode, setViewportMode] = useState<ViewportMode>("desktop");
   const [drillDownCategory, setDrillDownCategory] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiVersion, setAiVersion] = useState(0); // increments when AI data arrives to force re-render
 
   const drillDownFindings = useMemo(() => {
     if (!drillDownCategory || !scanResult) return [];
@@ -108,12 +109,27 @@ export default function App() {
           setAiLoading(true);
           apiClient.analyzeWithAI(message.result).then((aiResult) => {
             console.log("[AI] analyzeWithAI result:", aiResult ? "got data" : "null", aiResult ? Object.keys(aiResult) : []);
-            if (aiResult && aiResult.storyCards && aiResult.storyCards.length > 0) {
-              setScanResult((prev) =>
-                prev ? { ...prev, aiAnalysis: { ...prev.aiAnalysis, ...aiResult } as any } : prev
-              );
-              console.log("[AI] Updated scan result with AI data, storyCards:", aiResult.storyCards.length);
+            if (aiResult) {
+              // Create a completely new aiAnalysis object to force React re-render
+              setScanResult((prev) => {
+                if (!prev) return prev;
+                const newAiAnalysis = {
+                  hookLine: aiResult.hookLine || prev.aiAnalysis?.hookLine || "",
+                  storyCards: aiResult.storyCards && aiResult.storyCards.length > 0
+                    ? aiResult.storyCards
+                    : prev.aiAnalysis?.storyCards || [],
+                  quickWins: aiResult.quickWins && aiResult.quickWins.length > 0
+                    ? aiResult.quickWins
+                    : prev.aiAnalysis?.quickWins || [],
+                  pageInsights: aiResult.pageInsights && aiResult.pageInsights.length > 0
+                    ? aiResult.pageInsights
+                    : prev.aiAnalysis?.pageInsights || [],
+                };
+                console.log("[AI] Setting new aiAnalysis with", newAiAnalysis.storyCards.length, "story cards, hookLine:", newAiAnalysis.hookLine?.substring(0, 50));
+                return { ...prev, aiAnalysis: newAiAnalysis as any };
+              });
             }
+            setAiVersion((v) => v + 1); // force re-render
             setAiLoading(false);
           }).catch((err) => {
             console.error("[AI] analyzeWithAI failed:", err);
@@ -279,6 +295,7 @@ export default function App() {
               {scanResult?.aiAnalysis ? (
                 <>
                   <HookLine
+                    key={`hookline-${aiVersion}`}
                     hookLine={scanResult.aiAnalysis.hookLine}
                     quickWins={scanResult.aiAnalysis.quickWins}
                   />
@@ -301,6 +318,7 @@ export default function App() {
               {/* Story Cards */}
               {scanResult?.aiAnalysis?.storyCards && (
                 <StoryCardView
+                  key={`stories-${aiVersion}`}
                   storyCards={scanResult.aiAnalysis.storyCards}
                   result={scanResult}
                   onDrillDown={(category) => setDrillDownCategory(category)}

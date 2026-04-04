@@ -4,12 +4,12 @@
   "description": "AI-Powered UX Auditing — consultant-quality analysis in one click.",
   "version": "0.1.0",
   "permissions": ["activeTab", "sidePanel"],
+  "host_permissions": ["http://localhost:3001/*"],
   "side_panel": {
     "default_path": "index.html"
   },
   "background": {
-    "service_worker": "service-worker.js",
-    "type": "module"
+    "service_worker": "service-worker.js"
   },
   "content_scripts": [
     {
