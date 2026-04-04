@@ -63,8 +63,24 @@ export const apiClient = {
     }
   },
 
-  async analyzeWithAI(scanResult: ScanResult): Promise<AIAnalysis | null> {
+  async captureScreenshot(): Promise<string | null> {
     try {
+      const response = await chrome.runtime.sendMessage({ type: "CAPTURE_SCREENSHOT" });
+      return response?.dataUrl || null;
+    } catch {
+      return null;
+    }
+  },
+
+  async analyzeWithAI(scanResult: ScanResult, screenshot?: string | null): Promise<AIAnalysis | null> {
+    try {
+      // Also extract visible text content from the scan for qualitative analysis
+      const visibleText = scanResult.allFindings
+        .filter((f) => f.description)
+        .map((f) => f.description)
+        .join(" ")
+        .substring(0, 500);
+
       const response = await fetch(`${API_BASE}/api/ai/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -82,6 +98,7 @@ export const apiClient = {
           },
           pageType: scanResult.pageType,
           url: scanResult.url,
+          screenshot: screenshot || undefined,
         }),
       });
 

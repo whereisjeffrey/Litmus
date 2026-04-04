@@ -105,9 +105,12 @@ export default function App() {
           // Fire-and-forget: save scan to API if user is logged in
           // TODO: pass actual access token once auth is wired up
           apiClient.saveScan(message.result).catch(() => {});
-          // Try AI analysis in background
+          // Capture screenshot + run AI analysis
           setAiLoading(true);
-          apiClient.analyzeWithAI(message.result).then((aiResult) => {
+          apiClient.captureScreenshot().then((screenshot) => {
+            console.log("[AI] Screenshot captured:", screenshot ? "yes" : "no");
+            return apiClient.analyzeWithAI(message.result, screenshot);
+          }).then((aiResult) => {
             console.log("[AI] analyzeWithAI result:", aiResult ? "got data" : "null", aiResult ? Object.keys(aiResult) : []);
             if (aiResult) {
               // Create a completely new aiAnalysis object to force React re-render

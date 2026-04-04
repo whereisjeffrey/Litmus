@@ -6,6 +6,22 @@ import type { ExtensionMessage } from "@placeholder/shared";
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 /**
+ * Capture a screenshot of the current tab and return as base64 data URL.
+ */
+async function captureScreenshot(): Promise<string | null> {
+  try {
+    const dataUrl = await chrome.tabs.captureVisibleTab(undefined, {
+      format: "jpeg",
+      quality: 60,
+    });
+    return dataUrl;
+  } catch (err) {
+    console.error("[Placeholder] Screenshot capture failed:", err);
+    return null;
+  }
+}
+
+/**
  * Relay messages between the side panel and content scripts.
  *
  * Messages from the side panel (no sender.tab) get forwarded to the active tab's content script.
@@ -17,6 +33,14 @@ chrome.runtime.onMessage.addListener(
     sender: chrome.runtime.MessageSender,
     sendResponse: (response?: unknown) => void
   ) => {
+    // Screenshot request from side panel
+    if (message.type === "CAPTURE_SCREENSHOT" && !sender.tab) {
+      captureScreenshot().then((dataUrl) => {
+        sendResponse({ dataUrl });
+      });
+      return true; // async response
+    }
+
     // Message from the side panel → forward to content script
     if (
       (message.type === "START_SCAN" ||

@@ -32,6 +32,7 @@ interface AnalyzeRequestBody {
   };
   pageType: string;
   url: string;
+  screenshot?: string; // base64 data URL of the page
 }
 
 // ─── Industry Detection ─────────────────────────────────────────────
@@ -148,6 +149,21 @@ function getPageContext(pageType: string): string {
   return "Evaluate this page for business impact: clarity, conversion potential, trust signals, user experience.";
 }
 
+// ─── Customer Persona ─────────────────────────────────────────────
+
+function getCustomerPersona(industry: string, pageType: string): string {
+  const personas: Record<string, string> = {
+    "real-estate": "A first-time homebuyer in their 30s looking for a 3-bedroom house. You want to search by neighborhood, see photos, and contact an agent. You're comparing 3-4 real estate sites right now.",
+    ecommerce: "A busy professional shopping online during their lunch break. You know roughly what you want but need to find it quickly, compare options, and checkout without friction. You'll abandon if it takes more than 2 minutes.",
+    saas: "A VP of Operations evaluating software tools for your 50-person team. You have 15 minutes to decide if this product is worth a demo. You need to understand what it does, how much it costs, and whether companies like yours use it.",
+    fintech: "A 35-year-old professional looking to open a new account or apply for a financial product. You're cautious about security, need to understand fees clearly, and will leave immediately if something feels untrustworthy.",
+    medical: "A patient looking for a new healthcare provider. You want to find a doctor, check their credentials, read reviews, and book an appointment online. You're slightly anxious and need reassurance.",
+    "professional-services": "A business owner who needs legal/accounting/consulting help. You want to understand their expertise, see proof they've helped companies like yours, and book a consultation. You're comparing 3 firms.",
+    general: "A potential customer visiting this website for the first time. You found it through a Google search or a friend's recommendation. You have 30 seconds to decide if this site has what you need.",
+  };
+  return personas[industry] || personas.general;
+}
+
 // ─── Prompt Builder ────────────────────────────────────────────────
 
 function buildAnalysisPrompt(
@@ -177,9 +193,24 @@ function buildAnalysisPrompt(
     .map((f) => `  - [${f.severity.toUpperCase()}] ${f.title}: ${f.description}`)
     .join("\n");
 
-  return `You are a senior UX consultant who specializes in ${industry === "general" ? "digital businesses" : industry.replace("-", " ")} companies. A client has hired you to evaluate their ${pageType} and identify the issues most likely costing them money and customers.
+  return `You are a senior UX consultant who specializes in ${industry === "general" ? "digital businesses" : industry.replace("-", " ")} companies. A client has hired you to evaluate their ${pageType}.
 
-You are NOT a technical auditor. You are a business consultant. Your job is to tell the CEO what's wrong in language they care about: revenue, customers, competitive advantage, growth.
+## YOUR ROLE
+
+You are NOT a code auditor. You are NOT scanning HTML. You are a BUSINESS CONSULTANT who is looking at this website AS A POTENTIAL CUSTOMER WOULD.
+
+Pretend you are:
+${getCustomerPersona(industry, pageType)}
+
+You just landed on this page for the first time. You've never seen this company before. Look at the screenshot and ask yourself:
+- Can I tell what this company does within 5 seconds?
+- Can I find what I'm looking for?
+- Do I trust this company?
+- Is the path to my goal (buy, sign up, contact, search) clear and obvious?
+- What would confuse me or make me leave?
+- What's missing that I'd expect to see?
+- Does the visual design feel professional and current?
+- Is the messaging clear, specific, and compelling — or vague and forgettable?
 
 ## Your Industry Expertise
 ${industryExpertise}
@@ -187,7 +218,7 @@ ${industryExpertise}
 ## Page Context
 ${pageContext}
 
-## The Client's Page
+## Technical Scan Data (supplementary — NOT your primary source)
 URL: ${url}
 Page Type: ${pageType}
 Detected Industry: ${industry}
@@ -203,19 +234,23 @@ ${topFindings}
 
 ## Your Task
 
-Identify the 3-5 issues most likely COSTING THIS BUSINESS MONEY OR CUSTOMERS. Frame every insight as a business problem, not a technical one.
+Based PRIMARILY on what you SEE in the screenshot (the visual design, layout, messaging, clarity, trust signals, user flow), and supplemented by the technical scan data, identify the 3-5 issues most likely COSTING THIS BUSINESS MONEY OR CUSTOMERS.
+
+PRIORITIZE qualitative issues (confusing layout, unclear messaging, missing trust signals, poor visual hierarchy, buried CTAs, confusing navigation, weak copy, lack of social proof) OVER technical issues (missing HTML attributes, contrast ratios, heading hierarchy).
+
+Technical issues should only appear if they have DIRECT customer impact (e.g., "the search button is invisible" not "the button has low contrast ratio").
 
 ## Rules
 
-1. NEVER use technical jargon in headlines. No "WCAG", "alt text", "meta tag", "heading hierarchy", "contrast ratio". Those are engineer terms.
-2. Every headline must make a CEO lean forward. It must imply money lost or customers lost.
-3. Every impact statement must include a SPECIFIC research citation with source name and year.
-4. Do NOT include trivial issues. Missing alt text on a decorative image is not CEO-level. A broken signup flow IS.
-5. Rank by estimated business impact. The biggest money-loser goes first.
-6. Be specific to THIS page. Reference actual findings from the scan data.
-7. If the page is actually good (85+), say so. Don't manufacture problems.
-8. Group related technical issues into one business-impact card. "12 missing alt texts + 3 contrast issues" = one "Legal Risk" card, not two.
-9. Frame accessibility under "Legal Risk" (ADA lawsuits cost $10K-$50K) or "Customer Experience" (users literally can't use your site).
+1. NEVER use technical jargon in headlines. No "WCAG", "alt text", "meta tag", "heading hierarchy", "contrast ratio", "form labels", "autocomplete". Those are engineer terms.
+2. Every headline must make a CEO lean forward. Frame as revenue, customers, or competitive advantage.
+3. Every impact statement must include a SPECIFIC research citation with source name.
+4. Be specific to THIS page. Reference what you actually SEE — specific elements, text, images, layout choices.
+5. If the page is actually good (85+), say so. Don't manufacture problems.
+6. Focus on the BIG things. "Your hero section doesn't explain what you do" is more important than "one image is missing alt text."
+7. Write as if you're presenting findings to a CEO in a boardroom, not filing a bug report.
+8. Include at least one insight about the MESSAGING/COPY on the page — is it clear, compelling, and customer-focused?
+9. Include at least one insight about the VISUAL DESIGN — does it look modern, trustworthy, and professional?
 
 ## Output Format
 
@@ -334,7 +369,7 @@ function parseAnalysisResponse(text: string) {
 aiRoutes.post("/analyze", async (c) => {
   try {
     const body = await c.req.json<AnalyzeRequestBody>();
-    const { scanData, pageType, url } = body;
+    const { scanData, pageType, url, screenshot } = body;
 
     if (!scanData || !pageType || !url) {
       return c.json({ error: "Missing required fields: scanData, pageType, url" }, 400);
@@ -343,10 +378,34 @@ aiRoutes.post("/analyze", async (c) => {
     // Build the prompt with knowledge base context
     const prompt = buildAnalysisPrompt(scanData, pageType, url);
 
+    // Build message content — text + screenshot if available
+    const content: Anthropic.MessageCreateParams["messages"][0]["content"] = [];
+
+    if (screenshot) {
+      // Extract base64 data from data URL (remove "data:image/jpeg;base64," prefix)
+      const base64Data = screenshot.replace(/^data:image\/\w+;base64,/, "");
+      content.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: "image/jpeg",
+          data: base64Data,
+        },
+      });
+      content.push({
+        type: "text",
+        text: "Above is a screenshot of the page I want you to evaluate. Look at it carefully as a potential customer would.\n\n" + prompt,
+      });
+      console.log("[AI] Sending screenshot + prompt to Claude vision");
+    } else {
+      content.push({ type: "text", text: prompt });
+      console.log("[AI] Sending text-only prompt to Claude (no screenshot)");
+    }
+
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 4000,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content }],
     });
 
     const responseText = message.content[0].type === "text" ? message.content[0].text : "";

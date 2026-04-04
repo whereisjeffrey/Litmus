@@ -390,6 +390,15 @@ export interface SetViewportMessage {
   mode: ViewportMode;
 }
 
+export interface CaptureScreenshotMessage {
+  type: "CAPTURE_SCREENSHOT";
+}
+
+export interface ScreenshotResultMessage {
+  type: "SCREENSHOT_RESULT";
+  dataUrl: string | null;
+}
+
 export type ExtensionMessage =
   | StartScanMessage
   | ScanProgressMessage
@@ -397,7 +406,9 @@ export type ExtensionMessage =
   | ScanErrorMessage
   | ShowElementMessage
   | HideElementMessage
-  | SetViewportMessage;
+  | SetViewportMessage
+  | CaptureScreenshotMessage
+  | ScreenshotResultMessage;
 
 // ─── API Types ──────────────────────────────────────────────────────
 

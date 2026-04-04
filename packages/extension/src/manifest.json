@@ -3,7 +3,7 @@
   "name": "Placeholder",
   "description": "AI-Powered UX Auditing — consultant-quality analysis in one click.",
   "version": "0.1.0",
-  "permissions": ["activeTab", "sidePanel"],
+  "permissions": ["activeTab", "sidePanel", "tabs"],
   "host_permissions": ["http://localhost:3001/*"],
   "side_panel": {
     "default_path": "index.html"
