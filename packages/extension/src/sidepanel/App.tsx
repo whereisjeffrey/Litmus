@@ -296,22 +296,29 @@ export default function App() {
               />
 
               {/* TOP INSIGHTS — "What's Costing You Customers" */}
-              {scanResult?.aiAnalysis?.storyCards && scanResult.aiAnalysis.storyCards.length > 0 ? (
+              {/* Only show after Claude responds (aiVersion > 0), not with template data */}
+              {aiVersion > 0 && scanResult?.aiAnalysis?.storyCards && scanResult.aiAnalysis.storyCards.length > 0 ? (
                 <TopInsightsCard
                   key={`top-insights-${aiVersion}`}
                   storyCards={scanResult.aiAnalysis.storyCards}
                   onViewDetails={(category) => setDrillDownCategory(category)}
                 />
-              ) : aiLoading ? (
-                <div className="rounded-xl bg-accent-50 border border-accent-100 p-4 text-center">
-                  <p className="text-xs text-accent-600 animate-pulse">
-                    Analyzing your page as a customer would...
+              ) : aiLoading || (state === "complete" && aiVersion === 0) ? (
+                <div className="rounded-xl border border-accent-100 p-5 text-center" style={{ backgroundColor: "#ECF8FF" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="mx-auto mb-2 text-accent-500 animate-pulse">
+                    <path d="M12 2C12 2 13.5 8.5 15.5 10.5C17.5 12.5 22 12 22 12C22 12 17.5 13.5 15.5 15.5C13.5 17.5 12 22 12 22C12 22 10.5 17.5 8.5 15.5C6.5 13.5 2 12 2 12C2 12 6.5 10.5 8.5 8.5C10.5 6.5 12 2 12 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                  </svg>
+                  <p className="text-xs font-medium text-accent-600 animate-pulse">
+                    Reviewing your page as a customer would...
+                  </p>
+                  <p className="text-2xs text-accent-400 mt-1">
+                    This takes 10-15 seconds
                   </p>
                 </div>
               ) : null}
 
-              {/* Smart Insight + Priorities (below top insights) */}
-              {scanResult?.aiAnalysis && (
+              {/* Smart Insight + Priorities — also only show after Claude responds */}
+              {aiVersion > 0 && scanResult?.aiAnalysis && (
                 <HookLine
                   key={`hookline-${aiVersion}`}
                   hookLine={scanResult.aiAnalysis.hookLine}
