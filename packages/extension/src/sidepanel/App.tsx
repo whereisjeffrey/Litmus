@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import type { ScanState, ScanResult, ExtensionMessage, ViewportMode, Finding } from "@placeholder/shared";
-import { APP_NAME, SCORE_WEIGHTS } from "@placeholder/shared";
+import { APP_NAME, SCORE_WEIGHTS, PageType } from "@placeholder/shared";
 import ScanButton from "./components/ScanButton";
 import ScanProgress from "./components/ScanProgress";
 import ScoreGauge from "./components/ScoreGauge";
@@ -9,7 +9,9 @@ import HookLine from "./components/HookLine";
 import StoryCardView from "./components/StoryCardView";
 import CategoryDetailView from "./components/CategoryDetailView";
 import TopInsightsCard from "./components/TopInsightsCard";
+import GoalAnalysisPanel from "./components/GoalAnalysisPanel";
 import { apiClient } from "./lib/api-client";
+import { clearGoalCaches } from "./lib/page-cache";
 
 const CATEGORY_COLORS: Record<string, string> = {
   Accessibility: "#93C5FD",
@@ -86,6 +88,7 @@ export default function App() {
   const [drillDownCategory, setDrillDownCategory] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiVersion, setAiVersion] = useState(0); // increments when AI data arrives to force re-render
+  const [mode, setMode] = useState<"health" | "goal">("health");
 
   const drillDownFindings = useMemo(() => {
     if (!drillDownCategory || !scanResult) return [];
@@ -156,6 +159,8 @@ export default function App() {
     setProgressMessage("Starting scan...");
     setProgressPercent(0);
     setError(null);
+    // Fresh page state → drop any cached goal captures/results.
+    clearGoalCaches();
 
     chrome.runtime.sendMessage({ type: "START_SCAN" } satisfies ExtensionMessage);
   }, []);
@@ -278,7 +283,32 @@ export default function App() {
       {/* Results state */}
       {state === "complete" && (
         <div className="animate-fade-in space-y-4">
-          {drillDownCategory === null ? (
+          {/* Health / Goal mode toggle */}
+          <div className="flex gap-1 bg-surface-100 rounded-lg p-0.5">
+            <button
+              onClick={() => setMode("health")}
+              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                mode === "health" ? "bg-white text-accent-600 shadow-sm" : "text-surface-500 hover:text-surface-700"
+              }`}
+            >
+              Page health
+            </button>
+            <button
+              onClick={() => setMode("goal")}
+              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                mode === "goal" ? "bg-white text-accent-600 shadow-sm" : "text-surface-500 hover:text-surface-700"
+              }`}
+            >
+              Goal analysis
+            </button>
+          </div>
+
+          {mode === "goal" ? (
+            <GoalAnalysisPanel
+              pageType={scanResult?.pageType ?? PageType.Unknown}
+              scanResult={scanResult}
+            />
+          ) : drillDownCategory === null ? (
             <>
               {/* Overview: ScoreGauge + HookLine + StoryCards */}
               <ScoreGauge

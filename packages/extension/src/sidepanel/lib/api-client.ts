@@ -1,4 +1,13 @@
-import type { ScanResult, AIAnalysis } from "@placeholder/shared";
+import type {
+  ScanResult,
+  AIAnalysis,
+  GoalAnalyzeRequest,
+  GoalAnalysisResult,
+  GoalNextStepRequest,
+  GoalNextStepDecision,
+  SiteUnderstanding,
+  SiteUnderstandingRequest,
+} from "@placeholder/shared";
 
 const API_BASE = "http://localhost:3001"; // Will be configurable later
 
@@ -105,6 +114,48 @@ export const apiClient = {
         }),
       });
 
+      if (!response.ok) return null;
+      return response.json();
+    } catch {
+      return null;
+    }
+  },
+
+  async analyzeGoal(req: GoalAnalyzeRequest): Promise<GoalAnalysisResult | null> {
+    try {
+      const response = await fetch(`${API_BASE}/api/ai/goal-analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req),
+      });
+      if (!response.ok) return null;
+      return response.json();
+    } catch {
+      return null;
+    }
+  },
+
+  async goalNextStep(req: GoalNextStepRequest): Promise<GoalNextStepDecision | null> {
+    try {
+      const response = await fetch(`${API_BASE}/api/ai/goal-next-step`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req),
+      });
+      if (!response.ok) return null;
+      return response.json();
+    } catch {
+      return null;
+    }
+  },
+
+  async understandSite(req: SiteUnderstandingRequest): Promise<SiteUnderstanding | null> {
+    try {
+      const response = await fetch(`${API_BASE}/api/ai/site-understanding`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req),
+      });
       if (!response.ok) return null;
       return response.json();
     } catch {

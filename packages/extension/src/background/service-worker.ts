@@ -12,7 +12,9 @@ async function captureScreenshot(): Promise<string | null> {
   try {
     const dataUrl = await chrome.tabs.captureVisibleTab({
       format: "jpeg",
-      quality: 60,
+      // Quality is free in vision tokens (billed by pixel count, not bytes);
+      // higher quality keeps fine UI text (search placeholders, labels) legible.
+      quality: 80,
     });
     return dataUrl;
   } catch (err) {
@@ -53,7 +55,8 @@ chrome.runtime.onMessage.addListener(
       (message.type === "START_SCAN" ||
         message.type === "SHOW_ELEMENT" ||
         message.type === "HIDE_ELEMENT" ||
-        message.type === "SET_VIEWPORT") &&
+        message.type === "SET_VIEWPORT" ||
+        message.type === "COLLECT_GOAL_SIGNALS") &&
       !sender.tab
     ) {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -79,7 +82,8 @@ chrome.runtime.onMessage.addListener(
       sender.tab &&
       (message.type === "SCAN_PROGRESS" ||
         message.type === "SCAN_COMPLETE" ||
-        message.type === "SCAN_ERROR")
+        message.type === "SCAN_ERROR" ||
+        message.type === "GOAL_SIGNALS_RESULT")
     ) {
       chrome.runtime.sendMessage(message).catch(() => {
         // Side panel might not be open; swallow

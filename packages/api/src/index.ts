@@ -9,6 +9,7 @@ import { authRoutes } from "./routes/auth";
 import { userRoutes } from "./routes/user";
 import { stripeRoutes } from "./routes/stripe";
 import { aiRoutes } from "./routes/ai";
+import { goalRoutes } from "./routes/goals";
 
 const app = new Hono();
 
@@ -29,6 +30,7 @@ app.route("/api/scan", scanRoutes);
 app.route("/api/user", userRoutes);
 app.route("/api/stripe", stripeRoutes);
 app.route("/api/ai", aiRoutes);
+app.route("/api/ai", goalRoutes);
 
 // 404
 app.notFound((c) => c.json({ error: "Not found" }, 404));

@@ -23,6 +23,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.8.0
         version: 1.19.12(hono@4.12.9)
+      '@placeholder/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@supabase/supabase-js':
         specifier: ^2.39.0
         version: 2.101.1
