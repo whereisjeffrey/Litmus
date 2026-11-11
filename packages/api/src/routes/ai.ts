@@ -1,9 +1,18 @@
 import { Hono } from "hono";
 import Anthropic from "@anthropic-ai/sdk";
+import { loadKnowledge } from "../lib/knowledge";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
+
+/**
+ * Consultant-report model. Override with AI_MODEL in .env:
+ *   claude-opus-4-8   — quality bar (default; ~$0.15-0.40/report)
+ *   claude-sonnet-5   — cheap iteration (~3-5x cheaper, intro pricing)
+ *   claude-haiku-4-5  — plumbing tests only
+ */
+const AI_MODEL = process.env.AI_MODEL || "claude-opus-4-8";
 
 export const aiRoutes = new Hono();
 
@@ -23,6 +32,17 @@ interface CategoryScore {
   findingsCount: number;
 }
 
+interface DomDigestEntry {
+  tag: string;
+  text: string;
+  selector: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  aboveFold: boolean;
+}
+
 interface AnalyzeRequestBody {
   scanData: {
     overallScore: number;
@@ -32,7 +52,15 @@ interface AnalyzeRequestBody {
   };
   pageType: string;
   url: string;
-  screenshot?: string; // base64 data URL of the page
+  /** Legacy single viewport screenshot (kept for backward compatibility) */
+  screenshot?: string;
+  /** Full-page capture: ordered top-to-bottom viewport segments as data URLs */
+  screenshots?: string[];
+  /** Simulated mobile-width (390px CSS constraint) segments, top to bottom */
+  mobileScreenshots?: string[];
+  /** Compact inventory of interactive/structural elements with positions */
+  domDigest?: DomDigestEntry[];
+  pageTitle?: string;
 }
 
 // ─── Industry Detection ─────────────────────────────────────────────
@@ -64,8 +92,15 @@ const INDUSTRY_SIGNALS: Record<string, { keywords: string[]; urlPatterns: string
   },
 };
 
-function detectIndustry(url: string, pageType: string, findings: ScanFinding[]): string {
-  const allText = `${url} ${pageType} ${findings.map(f => f.title + " " + f.description).join(" ")}`.toLowerCase();
+/**
+ * Keyword-based industry detection. Uses page content (DOM digest text +
+ * title + URL) — NOT finding descriptions, which pollute the signal with
+ * scanner vocabulary. This is a pre-fetch hint; the model's own read of the
+ * screenshots is the final authority (it reports detectedIndustry back).
+ */
+function detectIndustry(url: string, pageTitle: string, domDigest?: DomDigestEntry[]): string {
+  const digestText = domDigest?.map((e) => e.text).join(" ") ?? "";
+  const allText = `${url} ${pageTitle} ${digestText}`.toLowerCase();
   const scores: Record<string, number> = {};
 
   for (const [industry, signals] of Object.entries(INDUSTRY_SIGNALS)) {
@@ -83,53 +118,43 @@ function detectIndustry(url: string, pageType: string, findings: ScanFinding[]):
   return sorted[0][1] >= 3 ? sorted[0][0] : "general";
 }
 
-// ─── Industry Expertise Context ─────────────────────────────────────
+// ─── Industry Background Knowledge ──────────────────────────────────
 
-function getIndustryExpertise(industry: string): string {
+function getIndustryBackground(industry: string): string {
   const expertise: Record<string, string> = {
-    saas: `You specialize in SaaS. Key benchmarks:
+    saas: `SaaS background benchmarks:
 - Free trial conversion: 15-25% (Totango)
 - Each signup field removed: +10% conversion (Imagescape)
-- 55% of visitors spend <15 seconds on page (Microsoft)
 - Transparent pricing companies grow 2x faster (OpenView)
-- Single CTA pages: 13.5% conversion vs 2.8% for 5+ CTAs (Unbounce)
 - Onboarding completion: top quartile hits 80% (Userpilot)`,
-    ecommerce: `You specialize in e-commerce. Key benchmarks:
+    ecommerce: `E-commerce background benchmarks:
 - Cart abandonment: 70.19% average (Baymard 2023)
 - 24% abandon when forced to create account (Baymard)
 - 48% abandon due to surprise costs (shipping, tax)
 - Guest checkout increases conversion 45% (Baymard)
-- Product pages with 5+ images: +40% conversion (Shopify)
 - Return policy visibility reduces abandonment 17% (UPS/comScore)`,
-    fintech: `You specialize in fintech. Key benchmarks:
+    fintech: `Fintech background benchmarks:
 - 81% say trust is deciding factor (Edelman)
-- Security badges: +42% conversion (Blue Fountain Media)
 - KYC abandonment: 40-50% for complex flows (Signicat)
-- Financial calculators: +3x time-on-site, +25% conversion (HubSpot)
 - 41% switch banks due to poor UX (J.D. Power)`,
-    medical: `You specialize in healthcare. Key benchmarks:
+    medical: `Healthcare background benchmarks:
 - 77% search before booking appointment (Google Health)
 - Online scheduling: +24% bookings (Accenture)
 - 88% consider online reviews for providers (Software Advice)
-- HIPAA violations: $100-$50,000 per incident
 - 60% will switch providers for better digital experience (NRC Health)`,
-    "professional-services": `You specialize in professional services. Key benchmarks:
+    "professional-services": `Professional services background benchmarks:
 - 75% judge credibility by website design (Stanford)
 - Case studies generate 70% more leads (CMI)
 - Online booking: +30% intake conversion (Clio)
-- 80% of buyers check credentials before contact (Hinge)
-- Specialized firms grow 8x faster than generalists (Hinge)`,
-    "real-estate": `You specialize in real estate. Key benchmarks:
+- 80% of buyers check credentials before contact (Hinge)`,
+    "real-estate": `Real estate background benchmarks:
 - 97% of buyers use internet in search (NAR 2023)
 - Virtual tours: +87% more views (Realtor.com)
 - 76% found home on mobile device (NAR)
-- Properties with 20+ photos sell 32% faster (Redfin)
-- Agent video intros: +403% more inquiries (BombBomb)`,
-    general: `You evaluate websites across industries. Key benchmarks:
+- Properties with 20+ photos sell 32% faster (Redfin)`,
+    general: `General background benchmarks:
 - 88% less likely to return after bad experience (Gomez)
-- 1-second load delay: -7% conversions (Akamai)
 - 75% judge credibility by design (Stanford)
-- Clear CTAs: +161% conversion (HubSpot)
 - 55% spend <15 seconds on page (Microsoft)`,
   };
   return expertise[industry] || expertise.general;
@@ -139,156 +164,205 @@ function getIndustryExpertise(industry: string): string {
 
 function getPageContext(pageType: string): string {
   const pt = pageType.toLowerCase();
-  if (pt.includes("landing") || pt.includes("homepage")) return "The #1 job: convert visitors into leads/signups. Evaluate: 5-second clarity, CTA design, social proof, persuasion structure.";
-  if (pt.includes("pricing")) return "The #1 job: help visitors choose a plan. Evaluate: plan highlighting, comparison clarity, annual toggle, trust signals.";
-  if (pt.includes("checkout")) return "The #1 job: complete the purchase with zero friction. Evaluate: field count (7 max), guest checkout, shipping transparency, trust badges.";
-  if (pt.includes("signup") || pt.includes("register")) return "The #1 job: get users into the product. Evaluate: field count (3 max), social login, immediate value delivery.";
-  if (pt.includes("product")) return "The #1 job: convince visitor to buy. Evaluate: images (5+), price prominence, reviews, return policy visibility.";
-  if (pt.includes("blog") || pt.includes("article")) return "The #1 job: keep readers engaged and drive action. Evaluate: readability, CTAs, social sharing, content structure.";
-  if (pt.includes("dashboard") || pt.includes("app")) return "The #1 job: help users accomplish tasks efficiently. Evaluate: empty states, onboarding, navigation, loading states.";
-  return "Evaluate this page for business impact: clarity, conversion potential, trust signals, user experience.";
+  if (pt.includes("landing") || pt.includes("homepage")) return "Primary job of this page type: convert visitors into leads/signups. Typical evaluation areas: 5-second clarity, CTA design, social proof, persuasion structure.";
+  if (pt.includes("pricing")) return "Primary job: help visitors choose a plan. Typical evaluation areas: plan highlighting, comparison clarity, annual toggle, trust signals.";
+  if (pt.includes("checkout")) return "Primary job: complete the purchase with minimal friction. Typical evaluation areas: field count, guest checkout, shipping transparency, trust badges.";
+  if (pt.includes("signup") || pt.includes("register")) return "Primary job: get users into the product. Typical evaluation areas: field count, social login, immediate value delivery.";
+  if (pt.includes("product")) return "Primary job: convince the visitor to buy. Typical evaluation areas: images, price prominence, reviews, return policy visibility.";
+  if (pt.includes("blog") || pt.includes("article")) return "Primary job: keep readers engaged and drive a next action. Typical evaluation areas: readability, CTAs, content structure.";
+  if (pt.includes("dashboard") || pt.includes("app")) return "Primary job: help users accomplish tasks efficiently. Typical evaluation areas: empty states, onboarding, navigation, loading states.";
+  return "Evaluate against the page's actual job: clarity, conversion potential, trust, user experience.";
 }
 
-// ─── Customer Persona ─────────────────────────────────────────────
+// ─── Visitor Context ────────────────────────────────────────────────
 
-function getCustomerPersona(industry: string, pageType: string): string {
+function getVisitorContext(industry: string): string {
   const personas: Record<string, string> = {
-    "real-estate": "A first-time homebuyer in their 30s looking for a 3-bedroom house. You want to search by neighborhood, see photos, and contact an agent. You're comparing 3-4 real estate sites right now.",
-    ecommerce: "A busy professional shopping online during their lunch break. You know roughly what you want but need to find it quickly, compare options, and checkout without friction. You'll abandon if it takes more than 2 minutes.",
-    saas: "A VP of Operations evaluating software tools for your 50-person team. You have 15 minutes to decide if this product is worth a demo. You need to understand what it does, how much it costs, and whether companies like yours use it.",
-    fintech: "A 35-year-old professional looking to open a new account or apply for a financial product. You're cautious about security, need to understand fees clearly, and will leave immediately if something feels untrustworthy.",
-    medical: "A patient looking for a new healthcare provider. You want to find a doctor, check their credentials, read reviews, and book an appointment online. You're slightly anxious and need reassurance.",
-    "professional-services": "A business owner who needs legal/accounting/consulting help. You want to understand their expertise, see proof they've helped companies like yours, and book a consultation. You're comparing 3 firms.",
-    general: "A potential customer visiting this website for the first time. You found it through a Google search or a friend's recommendation. You have 30 seconds to decide if this site has what you need.",
+    "real-estate": "A first-time homebuyer in their 30s looking for a 3-bedroom house. They want to search by location, see photos, and contact an agent. They're comparing 3-4 real estate sites.",
+    ecommerce: "A busy professional shopping online during a lunch break. They know roughly what they want, need to find it quickly, compare options, and check out without friction.",
+    saas: "A VP of Operations evaluating software for a 50-person team. They have 15 minutes to decide if this is worth a demo: what it does, what it costs, who else uses it.",
+    fintech: "A 35-year-old professional opening a new account or applying for a financial product. Cautious about security, needs fees explained clearly, leaves if anything feels untrustworthy.",
+    medical: "A patient looking for a new healthcare provider: find a doctor, check credentials, read reviews, book online. Slightly anxious, needs reassurance.",
+    "professional-services": "A business owner who needs legal/accounting/consulting help: understand expertise, see proof of results for similar companies, book a consultation. Comparing 3 firms.",
+    general: "A potential customer visiting for the first time via search or a recommendation, deciding quickly whether this site has what they need.",
   };
   return personas[industry] || personas.general;
 }
 
-// ─── Prompt Builder ────────────────────────────────────────────────
+// ─── Prompt Builders ───────────────────────────────────────────────
+//
+// Split into a STABLE system prompt (role, reasoning protocol, knowledge
+// base, voice — identical for every scan of the same pageType+industry,
+// cached via cache_control) and a per-request user message (URL, screenshots,
+// scan data). Keep volatile content out of the system blocks: any byte
+// change there invalidates the prompt cache.
 
-function buildAnalysisPrompt(
-  scanData: AnalyzeRequestBody["scanData"],
-  pageType: string,
-  url: string
-): string {
-  const industry = detectIndustry(url, pageType, scanData.allFindings);
-  const industryExpertise = getIndustryExpertise(industry);
-  const pageContext = getPageContext(pageType);
+function buildSystemPrompt(pageType: string, industry: string): string {
+  const kb = loadKnowledge(pageType, industry);
 
-  // Summarize findings by category
+  const kbSection = kb.pageTypeRules || kb.industryRules
+    ? `## Knowledge base — research-backed rules for this page type and industry
+
+Apply these rules ONLY where the evidence in front of you supports them, and filter every rule through the reasoning protocol above (a rule that conflicts with this visitor's task does not apply). When you cite research, cite it from these rules — do not free-recall statistics from memory.
+
+${kb.pageTypeRules ? `### Page-type playbook\n${kb.pageTypeRules}` : ""}
+${kb.industryRules ? `### Industry playbook\n${kb.industryRules}` : ""}`
+    : "";
+
+  return `You are a senior UX consultant conducting an expert review of a live website. You have looked at thousands of products across industries. The client is paying for judgment, not a checklist — your report goes straight to the founder/CEO.
+
+## The visitor you are evaluating for
+${getVisitorContext(industry)}
+
+## Page context
+Page type: ${pageType} — ${getPageContext(pageType)}
+Industry (heuristic — override it if the screenshots tell you otherwise): ${industry}
+
+## Reasoning protocol — follow this for EVERY potential finding
+
+1. **Derive the task first.** What is this visitor concretely trying to accomplish on this page? State it to yourself. Every judgment is made relative to that task — never against generic design rules alone.
+2. **Chesterton's Fence.** Before criticizing any element, articulate the strongest reason a competent designer put it there. If your criticism does not survive that reason, it is not a finding. Example of the failure to avoid: flagging a location input next to a car-marketplace search button as "competing with the CTA" — location-first search is what makes the results useful; a real consultant would never flag it.
+3. **Evidence or it doesn't ship.** Every finding must point to something concrete you can see: a specific element, section, text, or absence, with where it appears (which screenshot segment / position). No vibes.
+4. **Benchmarks are background, not verdicts.** A statistic is never by itself proof that a design is wrong — explain the task-level mechanism ("this forces the visitor to X, which blocks their goal because Y"), then cite research if you are confident of it. If you are not certain a citation is real, state the mechanism without a citation. Never invent statistics.
+5. **No quotas.** Report only findings you would defend face-to-face with the site's designer. A strong page gets a short report that says it's strong — that honesty is what makes the criticism credible. Zero story cards is an acceptable answer for an excellent page.
+6. **Rank by business impact.** The thing most likely costing money or customers goes first.
+
+## Industry background
+${getIndustryBackground(industry)}
+
+${kbSection}
+
+## Voice
+- You are a trusted consultant, not an auditor and not a cheerleader. Direct, specific, constructive.
+- Business language for headlines and narratives: revenue, customers, trust, growth — not HTML attributes or WCAG codes.
+- Frame problems with their consequence and their fix ("Visitors can't tell what you do within the first screen — leading with the product name instead of the outcome. Rewrite the hero headline around the visitor's problem.").
+- Genuine strengths deserve mention where relevant, because accurate praise makes criticism trustworthy — but never pad, and never soften a real problem into invisibility.
+- The reader should finish knowing exactly what to do next and why it matters.
+
+## Output
+Fill the provided JSON schema. Notes:
+- hookLine: one sentence a CEO would stop on — the single most consequential truth about this page. Specific, not generic.
+- storyCards: your defensible findings (0-5), ranked by impact. "evidence" lists the concrete observations behind the finding (element + where you saw it).
+- quickWins: up to 3 actions someone could assign today, each with expected business result.
+- pageInsights: up to 3 strategic observations specific to this page and industry (these may include what's working well).
+- pageAssessment: your honest overall read.`;
+}
+
+function buildUserPrompt(body: AnalyzeRequestBody, segmentCount: number, mobileCount: number): string {
+  const { scanData, url, domDigest } = body;
+
   const categorySummary = scanData.categories
     .map((cat) => `  - ${cat.name}: score ${Math.round(cat.score)}/100, ${cat.findingsCount} findings`)
     .join("\n");
 
-  // Count by severity
-  const criticalCount = scanData.allFindings.filter((f) => f.severity === "critical").length;
-  const warningCount = scanData.allFindings.filter((f) => f.severity === "warning").length;
-  const infoCount = scanData.allFindings.filter((f) => f.severity === "info").length;
-
-  // Top 15 most impactful findings
   const severityOrder: Record<string, number> = { critical: 0, warning: 1, info: 2 };
   const topFindings = [...scanData.allFindings]
     .sort((a, b) => (severityOrder[a.severity] ?? 2) - (severityOrder[b.severity] ?? 2))
-    .slice(0, 15)
+    .slice(0, 20)
     .map((f) => `  - [${f.severity.toUpperCase()}] ${f.title}: ${f.description}`)
     .join("\n");
 
-  return `LOOK AT THE SCREENSHOT. That is a real website. You are visiting it right now as a potential customer for the first time.
+  const digestBlock = domDigest && domDigest.length > 0
+    ? domDigest
+        .slice(0, 150)
+        .map((e) => `  ${e.tag}${e.aboveFold ? "" : " (below fold)"} @(${Math.round(e.x)},${Math.round(e.y)}) ${Math.round(e.w)}x${Math.round(e.h)} "${e.text.slice(0, 80)}"`)
+        .join("\n")
+    : "  (not provided)";
 
-You are this person:
-${getCustomerPersona(industry, pageType)}
+  return `## The page under review
+URL: ${url}
 
-You have 30 seconds. What do you see? What confuses you? What would make you leave? What's missing?
+## Your evidence
+1. ${segmentCount > 1 ? `The ${segmentCount} desktop screenshot segments above cover the FULL page top-to-bottom` : "The screenshot above"} — the primary evidence.${mobileCount > 0 ? `
+2. ${mobileCount} additional segment(s) labeled MOBILE show the page constrained to a 390px viewport. This is a CSS-width simulation, not true device emulation — treat it as an approximation: layout breaks, cramped tap targets, and content order problems visible there are real signals, but do not report pixel-perfect mobile judgments from it.` : ""}
+${mobileCount > 0 ? "3" : "2"}. An inventory of the page's interactive and structural elements with positions (below).
+${mobileCount > 0 ? "4" : "3"}. Automated scan data (below) — deterministic measurements. Use it as supporting evidence when it connects to something a visitor would experience; you are not obligated to mention it.
 
-DO NOT talk about code, HTML, JavaScript errors, alt text, contrast ratios, meta tags, or any technical scan findings. IGNORE the technical data below unless it directly relates to something you can SEE in the screenshot that would affect a real customer.
+### Interactive/structural element inventory
+${digestBlock}
 
-## What to evaluate (LOOK AT THE SCREENSHOT for each one):
+### Automated scan summary
+Overall score: ${scanData.overallScore}/100
+${categorySummary}
+Top findings:
+${topFindings}
 
-1. FIRST IMPRESSION: Within 5 seconds, can you tell what this company does and why you should care? Is the headline specific or generic fluff?
-
-2. FINDING WHAT YOU NEED: Can you easily find the main action? (search for properties, add to cart, sign up, book appointment) Is it obvious or buried?
-
-3. TRUST: Would you give this company your money or personal information? Do you see testimonials, reviews, credentials, security indicators? Or does it feel anonymous?
-
-4. NAVIGATION: Does the menu make sense? Are labels in YOUR language (the customer's) or in company jargon? Can you find pricing, contact, help?
-
-5. MESSAGING: Is the copy compelling or forgettable? Does it talk about YOUR problems or just list THEIR features? Is there too much text or not enough?
-
-6. VISUAL DESIGN: Does this look like a company you'd trust with your money? Does it look modern or outdated? Is the layout clean or cluttered?
-
-7. MOBILE: If this were on a phone, would it work? Are buttons big enough? Is text readable?
-
-8. WHAT'S MISSING: What would you EXPECT to see on a ${industry === "general" ? "" : industry.replace("-", " ") + " "}website that isn't here?
-
-## Industry context
-${industryExpertise}
-
-## URL: ${url}
-## Page type: ${pageType}
-
-## Background technical data (DO NOT lead with this — only mention if it connects to something you SEE)
-Score: ${scanData.overallScore}/100. ${criticalCount} critical issues, ${warningCount} warnings found by automated scan.
-
-## CRITICAL INSTRUCTIONS
-
-- Your response must be based on what you SEE IN THE SCREENSHOT, not the technical scan data
-- Write like you're talking to the CEO: "Your homepage doesn't tell visitors what you do" NOT "Missing H1 heading tag"
-- Every insight must reference something VISIBLE in the screenshot — a specific section, element, image, text, or missing element
-- Include research citations where relevant (Baymard Institute, Nielsen Norman Group, NAR, etc.)
-- If you can't see the screenshot clearly, still evaluate based on what you can determine from the URL and page type
-- DO NOT mention JavaScript errors, missing alt text, heading hierarchy, form labels, autocomplete attributes, or any HTML-level issues unless they cause something visually broken that a customer would notice
-
-## TONE RULES (CRITICAL — follow these exactly)
-
-- You are a supportive advisor, not a harsh critic. Think "trusted consultant gently pointing out opportunities."
-- NEVER use negative words like "fluff," "lazy," "terrible," "fails," "awful," "weak," "poor," "bad," "pathetic," "mediocre," "ugly," "broken," "useless"
-- Frame every issue as an OPPORTUNITY, not a failure: "You could strengthen this by..." NOT "This is wrong"
-- ALWAYS lead with something positive before the suggestion. "Your design looks clean and professional. To build on that, consider adding..."
-- Use "consider" and "opportunity" language: "You might consider..." / "There's an opportunity to..." / "One thing that could strengthen this..."
-- When citing stats, frame as UPSIDE POTENTIAL, not current loss: "Companies that add guest checkout typically see 24% more completions" NOT "You're losing 24% of customers"
-- NEVER assume intent or mock decisions: "Mobile visitors may be having a different experience" NOT "You clearly didn't think about mobile"
-- The reader should feel MOTIVATED to take action, not embarrassed about their site
-- The hookLine should be encouraging but honest: "Your site has strong potential — here are 3 opportunities that could significantly boost conversions" NOT "Your site has major problems"
-
-## Output Format
-
-Respond with ONLY valid JSON, no markdown, no explanation:
-
-{
-  "hookLine": "One sentence that makes a CEO stop scrolling. Use a specific number from the scan. Frame as business problem, not technical issue.",
-  "storyCards": [
-    {
-      "category": "Growth Blockers|Customer Experience|Conversion Friction|Brand & Trust|Legal Risk",
-      "headline": "Plain English. Examples: 'Your signup process is turning away customers', 'Mobile visitors are getting a broken experience', 'Your checkout is creating doubt'",
-      "narrative": "2-3 sentences a CEO would understand. Explain what this is costing them. Include a research citation with source name. Connect to revenue, growth, or customer retention.",
-      "impact": "critical|high|medium|low",
-      "topIssues": ["Business-framed issue with research stat", "Another issue with specific number", "Third issue tied to business outcome"]
-    }
-  ],
-  "quickWins": [
-    {
-      "title": "Action a product manager would assign today",
-      "description": "What to do and what business result to expect. Include a stat.",
-      "estimatedTime": "~X minutes",
-      "impact": "High|Medium"
-    }
-  ],
-  "pageInsights": [
-    "Strategic insight specific to this page and industry",
-    "Another insight connecting findings to business outcomes"
-  ]
+Conduct your expert review now, following the reasoning protocol.`;
 }
 
-LIMITS: Max 5 storyCards, max 3 quickWins, max 3 pageInsights. First 2 storyCards are visible to free users, rest are locked for Pro.`;
-}
+// ─── Structured Output Schema ──────────────────────────────────────
 
-// ─── Response Parser ───────────────────────────────────────────────
+const ANALYSIS_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["pageAssessment", "detectedIndustry", "hookLine", "storyCards", "quickWins", "pageInsights"],
+  properties: {
+    pageAssessment: {
+      type: "string",
+      enum: ["strong", "solid", "needs-work", "struggling"],
+      description: "Honest overall read of the page",
+    },
+    detectedIndustry: {
+      type: "string",
+      description: "The industry you actually observe in the screenshots (may correct the heuristic)",
+    },
+    hookLine: { type: "string" },
+    storyCards: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["category", "headline", "narrative", "impact", "evidence", "topIssues"],
+        properties: {
+          category: {
+            type: "string",
+            enum: ["Growth Blockers", "Customer Experience", "Conversion Friction", "Brand & Trust", "Legal Risk"],
+          },
+          headline: { type: "string", description: "Plain-English, CEO-level headline" },
+          narrative: {
+            type: "string",
+            description: "2-3 sentences: what's happening, the task-level mechanism of why it hurts, and the fix direction",
+          },
+          impact: { type: "string", enum: ["critical", "high", "medium", "low"] },
+          evidence: {
+            type: "array",
+            items: { type: "string" },
+            description: "Concrete observations: element/section + where it appears (segment/position)",
+          },
+          topIssues: {
+            type: "array",
+            items: { type: "string" },
+            description: "Business-framed sub-issues supporting this finding",
+          },
+        },
+      },
+    },
+    quickWins: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["title", "description", "estimatedTime", "impact"],
+        properties: {
+          title: { type: "string" },
+          description: { type: "string" },
+          estimatedTime: { type: "string" },
+          impact: { type: "string", enum: ["High", "Medium"] },
+        },
+      },
+    },
+    pageInsights: { type: "array", items: { type: "string" } },
+  },
+} as const;
+
+// ─── Response Mapping ──────────────────────────────────────────────
 
 interface ClaudeStoryCard {
   category: string;
   headline: string;
   narrative: string;
   impact: "critical" | "high" | "medium" | "low";
+  evidence: string[];
   topIssues: string[];
 }
 
@@ -300,6 +374,8 @@ interface ClaudeQuickWin {
 }
 
 interface ClaudeAnalysisResponse {
+  pageAssessment: string;
+  detectedIndustry: string;
   hookLine: string;
   storyCards: ClaudeStoryCard[];
   quickWins: ClaudeQuickWin[];
@@ -307,40 +383,14 @@ interface ClaudeAnalysisResponse {
 }
 
 const CATEGORY_TO_ICON: Record<string, string> = {
-  // Business-focused categories (from new prompt)
   "Growth Blockers": "performance",
   "Customer Experience": "ux",
   "Conversion Friction": "forms",
   "Brand & Trust": "security",
   "Legal Risk": "accessibility",
-  // Legacy technical categories (fallback)
-  Accessibility: "accessibility",
-  "UX Heuristics": "ux",
-  Forms: "forms",
-  Content: "content",
-  Performance: "performance",
 };
 
-function parseAnalysisResponse(text: string) {
-  let jsonStr = text.trim();
-
-  // Strip markdown code fences if present
-  jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
-
-  // Extract JSON by finding first { and last }
-  const firstBrace = jsonStr.indexOf("{");
-  const lastBrace = jsonStr.lastIndexOf("}");
-  if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
-    jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
-  }
-
-  // Remove any remaining backticks that might be inside
-  jsonStr = jsonStr.replace(/```/g, "");
-
-  console.log("[AI] Parsing response, length:", jsonStr.length, "starts with:", jsonStr.substring(0, 50));
-  const parsed: ClaudeAnalysisResponse = JSON.parse(jsonStr);
-
-  // Map story cards to our StoryCard type with generated IDs and iconTypes
+function mapAnalysisResponse(parsed: ClaudeAnalysisResponse) {
   const storyCards = (parsed.storyCards || []).slice(0, 5).map((card, index) => ({
     id: `ai-story-${index}-${card.category.toLowerCase().replace(/\s+/g, "-")}`,
     headline: card.headline,
@@ -349,11 +399,11 @@ function parseAnalysisResponse(text: string) {
     category: card.category,
     findingCount: card.topIssues?.length || 0,
     topFindings: card.topIssues || [],
+    evidence: card.evidence || [],
     iconType: (CATEGORY_TO_ICON[card.category] || "security") as
       "accessibility" | "ux" | "forms" | "content" | "performance" | "security",
   }));
 
-  // Map quick wins
   const quickWins = (parsed.quickWins || []).slice(0, 3).map((qw) => ({
     title: qw.title,
     description: qw.description,
@@ -363,6 +413,8 @@ function parseAnalysisResponse(text: string) {
   }));
 
   return {
+    pageAssessment: parsed.pageAssessment || "",
+    detectedIndustry: parsed.detectedIndustry || "",
     hookLine: parsed.hookLine || "",
     storyCards,
     quickWins,
@@ -375,55 +427,95 @@ function parseAnalysisResponse(text: string) {
 aiRoutes.post("/analyze", async (c) => {
   try {
     const body = await c.req.json<AnalyzeRequestBody>();
-    const { scanData, pageType, url, screenshot } = body;
+    const { scanData, pageType, url } = body;
 
     if (!scanData || !pageType || !url) {
       return c.json({ error: "Missing required fields: scanData, pageType, url" }, 400);
     }
 
-    // Build the prompt with knowledge base context
-    const prompt = buildAnalysisPrompt(scanData, pageType, url);
+    // Normalize screenshots: prefer the multi-segment array, fall back to legacy single
+    const screenshots = (body.screenshots && body.screenshots.length > 0)
+      ? body.screenshots
+      : body.screenshot
+        ? [body.screenshot]
+        : [];
 
-    // Build message content — text + screenshot if available
-    const content: Anthropic.MessageCreateParams["messages"][0]["content"] = [];
+    const desktopShots = screenshots.slice(0, 6);
+    const mobileShots = (body.mobileScreenshots || []).slice(0, 3);
 
-    if (screenshot) {
-      // Extract base64 data from data URL (remove "data:image/jpeg;base64," prefix)
-      const base64Data = screenshot.replace(/^data:image\/\w+;base64,/, "");
-      content.push({
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: "image/jpeg",
-          data: base64Data,
+    const industry = detectIndustry(url, body.pageTitle || "", body.domDigest);
+    const systemPrompt = buildSystemPrompt(pageType, industry);
+    const userPrompt = buildUserPrompt(body, desktopShots.length, mobileShots.length);
+
+    // Interleave labeled screenshot segments, then the prompt
+    const content: Anthropic.ContentBlockParam[] = [];
+    const pushShots = (shots: string[], labelOf: (i: number, total: number) => string) => {
+      shots.forEach((shot, i) => {
+        const base64Data = shot.replace(/^data:image\/\w+;base64,/, "");
+        const mediaMatch = shot.match(/^data:(image\/\w+);base64,/);
+        content.push({ type: "text", text: labelOf(i, shots.length) });
+        content.push({
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: (mediaMatch?.[1] as "image/jpeg" | "image/png") || "image/jpeg",
+            data: base64Data,
+          },
+        });
+      });
+    };
+
+    pushShots(desktopShots, (i, total) =>
+      total > 1
+        ? `Desktop screenshot segment ${i + 1} of ${total} (top-to-bottom order):`
+        : "Screenshot of the page (desktop):"
+    );
+    pushShots(mobileShots, (i, total) =>
+      `MOBILE (simulated 390px viewport) segment ${i + 1} of ${total}:`
+    );
+    content.push({ type: "text", text: userPrompt });
+
+    console.log(`[AI] Analyzing ${url}: model=${AI_MODEL}, ${desktopShots.length} desktop + ${mobileShots.length} mobile segment(s), ${body.domDigest?.length ?? 0} digest entries, industry=${industry}`);
+
+    // Adaptive thinking + structured outputs, streamed to avoid HTTP timeouts
+    // on long thinking turns. The system prompt (role + protocol + knowledge
+    // base) is stable per pageType+industry, so cache_control makes repeat
+    // scans read it at ~0.1x price.
+    const stream = anthropic.messages.stream({
+      model: AI_MODEL,
+      max_tokens: 16000,
+      thinking: { type: "adaptive" },
+      system: [
+        {
+          type: "text",
+          text: systemPrompt,
+          cache_control: { type: "ephemeral" },
         },
-      });
-      content.push({
-        type: "text",
-        text: "Above is a screenshot of the page I want you to evaluate. Look at it carefully as a potential customer would.\n\n" + prompt,
-      });
-      console.log("[AI] Sending screenshot + prompt to Claude vision");
-    } else {
-      content.push({ type: "text", text: prompt });
-      console.log("[AI] Sending text-only prompt to Claude (no screenshot)");
+      ],
+      output_config: {
+        effort: "high",
+        format: { type: "json_schema", schema: ANALYSIS_SCHEMA },
+      },
+      messages: [{ role: "user", content }],
+    } as Anthropic.MessageStreamParams);
+
+    const message = await stream.finalMessage();
+
+    if (message.stop_reason === "refusal") {
+      console.error("[AI] Model refused the request");
+      return c.json({ error: "AI analysis was declined for this page" }, 500);
     }
 
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4000,
-      messages: [{ role: "user", content }],
-    });
-
-    const responseText = message.content[0].type === "text" ? message.content[0].text : "";
-
-    if (!responseText) {
+    const textBlock = message.content.find(
+      (b): b is Anthropic.TextBlock => b.type === "text"
+    );
+    if (!textBlock?.text) {
       return c.json({ error: "Empty response from AI" }, 500);
     }
 
-    // Parse the response into our AIAnalysis format
-    const analysis = parseAnalysisResponse(responseText);
-
-    return c.json(analysis);
+    // Structured outputs guarantee schema-valid JSON — no fence-stripping needed
+    const parsed: ClaudeAnalysisResponse = JSON.parse(textBlock.text);
+    return c.json(mapAnalysisResponse(parsed));
   } catch (err) {
     console.error("AI analysis error:", err);
     return c.json({ error: "AI analysis failed" }, 500);

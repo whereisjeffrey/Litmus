@@ -218,6 +218,23 @@ function StoryCardItem({
         </div>
       )}
 
+      {/* Evidence: the concrete observations this finding rests on */}
+      {card.evidence && card.evidence.length > 0 && (
+        <div className="mt-2.5 ml-9 space-y-1">
+          <span className="text-2xs font-semibold uppercase tracking-wide text-surface-400">
+            Observed
+          </span>
+          {card.evidence.slice(0, 2).map((item, i) => (
+            <p
+              key={i}
+              className="text-2xs text-surface-500 leading-snug border-l-2 border-surface-200 pl-2 italic"
+            >
+              {item}
+            </p>
+          ))}
+        </div>
+      )}
+
       {/* Bottom row */}
       <div className="flex items-center gap-2 mt-3 ml-9">
         <span className="inline-flex items-center rounded-full bg-surface-100 px-2 py-0.5 text-2xs font-medium text-surface-600">

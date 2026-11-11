@@ -43,6 +43,21 @@ chrome.runtime.onMessage.addListener(
       }
       sendResponse({ status: "viewport_set", mode: message.mode });
     }
+    if (message.type === "SCROLL_TO") {
+      window.scrollTo({ top: message.y, behavior: "instant" as ScrollBehavior });
+      // Wait two frames so the paint (lazy images, sticky headers) settles
+      // before the side panel captures the viewport.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          sendResponse({
+            status: "scrolled",
+            y: window.scrollY,
+            pageHeight: document.documentElement.scrollHeight,
+            viewportHeight: window.innerHeight,
+          });
+        });
+      });
+    }
     return true; // keep message channel open for async responses
   }
 );

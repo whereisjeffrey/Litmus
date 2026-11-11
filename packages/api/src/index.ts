@@ -1,14 +1,17 @@
+// Must be the first import — routes construct their Anthropic clients at
+// module load, so .env has to be applied before any route module evaluates.
+import "./env";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import "dotenv/config";
 
 import { scanRoutes } from "./routes/scan";
 import { authRoutes } from "./routes/auth";
 import { userRoutes } from "./routes/user";
 import { stripeRoutes } from "./routes/stripe";
 import { aiRoutes } from "./routes/ai";
+import { walkRoutes } from "./routes/walk";
 
 const app = new Hono();
 
@@ -29,6 +32,7 @@ app.route("/api/scan", scanRoutes);
 app.route("/api/user", userRoutes);
 app.route("/api/stripe", stripeRoutes);
 app.route("/api/ai", aiRoutes);
+app.route("/api/walk", walkRoutes);
 
 // 404
 app.notFound((c) => c.json({ error: "Not found" }, 404));

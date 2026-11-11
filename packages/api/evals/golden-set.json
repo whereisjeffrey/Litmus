@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "note": "Seed cases. Grow from Stage D kills, UI dismissals, and observed misses. URLs are representative; pin concrete URLs + archived snapshots when the runner is built.",
+  "cases": [
+    {
+      "id": "car-marketplace-location-field",
+      "url": "https://www.example-car-marketplace.com/",
+      "pageType": "Homepage",
+      "industry": "ecommerce",
+      "task": "Find a used SUV near you under $25,000",
+      "expected": [],
+      "forbidden": [
+        {
+          "element": "ZIP/location input adjacent to the hero search button",
+          "naiveHeuristic": "Multiple elements near the primary CTA compete for attention; single-CTA pages convert better",
+          "whyCorrect": "Location-first search is the task: without a location the results show inventory hundreds of miles away and are useless. Removing or demoting the field would break the primary job of the page."
+        }
+      ],
+      "provenance": "The original failure that motivated the reasoning-engine overhaul (2026-07)"
+    },
+    {
+      "id": "saas-pricing-contact-sales-enterprise",
+      "url": "https://www.example-saas.com/pricing",
+      "pageType": "Pricing Page",
+      "industry": "saas",
+      "task": "Decide whether this tool fits your 50-person team and what it would cost",
+      "expected": [],
+      "forbidden": [
+        {
+          "element": "'Contact Sales' instead of a price on the Enterprise tier only, with self-serve tiers priced transparently",
+          "naiveHeuristic": "Hiding pricing behind Contact Sales reduces conversion; transparent pricing wins",
+          "whyCorrect": "Enterprise deals are custom-priced by nature (seats, SSO, SLA, procurement). The transparency rule applies to self-serve tiers — which ARE priced. Flagging the enterprise tier misreads standard, correct SaaS practice."
+        }
+      ],
+      "provenance": "Seed trap: benchmark misapplied outside its scope"
+    },
+    {
+      "id": "checkout-required-shipping-fields",
+      "url": "https://www.example-store.com/checkout",
+      "pageType": "Checkout",
+      "industry": "ecommerce",
+      "task": "Buy the item in your cart shipped to your home",
+      "expected": [],
+      "forbidden": [
+        {
+          "element": "8-10 form fields on a physical-goods checkout (name, address lines, city, state, zip, email, phone)",
+          "naiveHeuristic": "Checkout forms should have 7 or fewer fields; more fields = abandonment",
+          "whyCorrect": "Physical delivery requires a complete shipping address; these fields are irreducible. The field-count heuristic targets OPTIONAL friction (account creation, surveys, company name), not the address itself."
+        }
+      ],
+      "provenance": "Seed trap: field-count rule applied to irreducible fields"
+    },
+    {
+      "id": "fintech-signup-identity-verification",
+      "url": "https://www.example-bank.com/open-account",
+      "pageType": "Signup / Register",
+      "industry": "fintech",
+      "task": "Open a checking account",
+      "expected": [],
+      "forbidden": [
+        {
+          "element": "SSN / identity verification step during account opening",
+          "naiveHeuristic": "Signup should require 3 fields max; heavy forms kill conversion",
+          "whyCorrect": "KYC identity verification is legally required for bank account opening. The right findings are about HOW it's staged (progress indicators, explaining why, save-and-resume) — never that it exists."
+        }
+      ],
+      "provenance": "Seed trap: regulatory requirement misread as friction"
+    },
+    {
+      "id": "medical-provider-credentials-density",
+      "url": "https://www.example-clinic.com/",
+      "pageType": "Homepage",
+      "industry": "medical",
+      "task": "Find a doctor you'd trust and book an appointment",
+      "expected": [],
+      "forbidden": [
+        {
+          "element": "Dense credential/affiliation text blocks (board certifications, hospital affiliations, insurance accepted)",
+          "naiveHeuristic": "Walls of text hurt scanability; pages should be visually minimal",
+          "whyCorrect": "Anxious patients actively seek credential density as a trust signal; 'minimal' healthcare pages read as unestablished. Findings should target hierarchy and findability of credentials, not their presence or volume."
+        }
+      ],
+      "provenance": "Seed trap: minimalism heuristic vs. trust-seeking behavior"
+    }
+  ]
+}

@@ -10,9 +10,9 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
  */
 async function captureScreenshot(): Promise<string | null> {
   try {
-    const dataUrl = await chrome.tabs.captureVisibleTab(undefined, {
+    const dataUrl = await chrome.tabs.captureVisibleTab({
       format: "jpeg",
-      quality: 60,
+      quality: 70,
     });
     return dataUrl;
   } catch (err) {

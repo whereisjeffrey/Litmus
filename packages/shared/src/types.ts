@@ -278,6 +278,8 @@ export interface StoryCard {
   findingCount: number;
   topFindings: string[];
   iconType: "accessibility" | "ux" | "forms" | "content" | "performance" | "security";
+  /** Concrete observations behind the finding (element + where it was seen) */
+  evidence?: string[];
 }
 
 // ─── AI Analysis ───────────────────────────────────────────────────
@@ -295,6 +297,10 @@ export interface AIAnalysis {
   quickWins: QuickWin[];
   pageInsights: string[];
   storyCards?: StoryCard[];
+  /** Honest overall read from the AI consultant: strong | solid | needs-work | struggling */
+  pageAssessment?: string;
+  /** Industry the model actually observed (may correct the keyword heuristic) */
+  detectedIndustry?: string;
 }
 
 // ─── Category Scores ────────────────────────────────────────────────
@@ -394,6 +400,15 @@ export interface CaptureScreenshotMessage {
   type: "CAPTURE_SCREENSHOT";
 }
 
+/**
+ * Scroll the page to a vertical offset (full-page capture support).
+ * Response: { status: "scrolled", y, pageHeight, viewportHeight }
+ */
+export interface ScrollToMessage {
+  type: "SCROLL_TO";
+  y: number;
+}
+
 export interface ScreenshotResultMessage {
   type: "SCREENSHOT_RESULT";
   dataUrl: string | null;
@@ -408,6 +423,7 @@ export type ExtensionMessage =
   | HideElementMessage
   | SetViewportMessage
   | CaptureScreenshotMessage
+  | ScrollToMessage
   | ScreenshotResultMessage;
 
 // ─── API Types ──────────────────────────────────────────────────────

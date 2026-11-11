@@ -9,7 +9,9 @@ import HookLine from "./components/HookLine";
 import StoryCardView from "./components/StoryCardView";
 import CategoryDetailView from "./components/CategoryDetailView";
 import TopInsightsCard from "./components/TopInsightsCard";
+import WalkSection from "./components/WalkSection";
 import { apiClient } from "./lib/api-client";
+import { captureAllViewports } from "./lib/capture";
 
 const CATEGORY_COLORS: Record<string, string> = {
   Accessibility: "#93C5FD",
@@ -108,9 +110,9 @@ export default function App() {
           apiClient.saveScan(message.result).catch(() => {});
           // Capture screenshot + run AI analysis
           setAiLoading(true);
-          apiClient.captureScreenshot().then((screenshot) => {
-            console.log("[AI] Screenshot captured:", screenshot ? "yes" : "no");
-            return apiClient.analyzeWithAI(message.result, screenshot);
+          captureAllViewports().then((captures) => {
+            console.log("[AI] Captured", captures.desktop.length, "desktop +", captures.mobile.length, "mobile segment(s)");
+            return apiClient.analyzeWithAI(message.result, captures);
           }).then((aiResult) => {
             console.log("[AI] analyzeWithAI result:", aiResult ? "got data" : "null", aiResult ? Object.keys(aiResult) : []);
             if (aiResult) {
@@ -128,6 +130,8 @@ export default function App() {
                   pageInsights: aiResult.pageInsights && aiResult.pageInsights.length > 0
                     ? aiResult.pageInsights
                     : prev.aiAnalysis?.pageInsights || [],
+                  pageAssessment: aiResult.pageAssessment || prev.aiAnalysis?.pageAssessment,
+                  detectedIndustry: aiResult.detectedIndustry || prev.aiAnalysis?.detectedIndustry,
                 };
                 console.log("[AI] Setting new aiAnalysis with", newAiAnalysis.storyCards.length, "story cards, hookLine:", newAiAnalysis.hookLine?.substring(0, 50));
                 return { ...prev, aiAnalysis: newAiAnalysis as any };
@@ -323,6 +327,16 @@ export default function App() {
                   key={`hookline-${aiVersion}`}
                   hookLine={scanResult.aiAnalysis.hookLine}
                   quickWins={scanResult.aiAnalysis.quickWins}
+                  pageAssessment={scanResult.aiAnalysis.pageAssessment}
+                />
+              )}
+
+              {/* Usability walk — simulated customers actually use the site */}
+              {scanResult?.url && (
+                <WalkSection
+                  url={scanResult.url}
+                  pageType={scanResult.pageType}
+                  industry={scanResult.aiAnalysis?.detectedIndustry}
                 />
               )}
 

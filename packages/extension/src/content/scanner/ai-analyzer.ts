@@ -16,11 +16,9 @@ function generateHookCandidates(result: ScanResult): HookCandidate[] {
   const totalFields = result.forms.forms.reduce((sum, f) => sum + f.fieldCount, 0)
     + result.forms.orphanedFields.length;
   if (totalFields > 5) {
-    const benchmark = Math.max(3, Math.round(totalFields * 0.6));
-    const dropoff = Math.min(40, Math.round((totalFields - benchmark) * 5));
     candidates.push({
       priority: 1,
-      line: `Your ${pt} asks for ${totalFields} fields \u2014 top performers in your category average ${benchmark}. You're likely losing ${dropoff}% of completions.`,
+      line: `Your ${pt} asks visitors for ${totalFields} fields \u2014 every extra field gives people another reason to quit before finishing.`,
     });
   }
 
@@ -29,7 +27,7 @@ function generateHookCandidates(result: ScanResult): HookCandidate[] {
   if (criticalCount >= 3) {
     candidates.push({
       priority: 2,
-      line: `This ${pt} has ${criticalCount} accessibility violations that could expose you to legal action \u2014 and they're affecting an estimated 15% of your visitors.`,
+      line: `This ${pt} has ${criticalCount} accessibility violations that could expose you to legal action \u2014 and they shut out visitors who rely on assistive technology.`,
     });
   }
 
@@ -42,7 +40,7 @@ function generateHookCandidates(result: ScanResult): HookCandidate[] {
       const ratio = worstPair.contrastRatio.toFixed(1);
       candidates.push({
         priority: 3,
-        line: `Your main call-to-action has a ${ratio}:1 contrast ratio \u2014 25% of users over 50 will struggle to read it.`,
+        line: `Text on this page measures as low as ${ratio}:1 contrast \u2014 below the 4.5:1 standard, so low-vision visitors and anyone reading in bright light will struggle.`,
       });
     }
   }
@@ -320,14 +318,14 @@ function generatePageInsights(result: ScanResult): string[] {
       }).length;
       if (ctaCount > 1) {
         insights.push(
-          `Landing pages with a single clear CTA convert 2-3x better. We found ${ctaCount} competing CTAs on your page.`
+          `We found ${ctaCount} competing calls-to-action on your page. The clearer the single next step, the more visitors take it — consider one primary CTA and demote the rest.`
         );
       }
       const images = result.images.images;
       const aboveFold = images.filter((i) => i.isAboveFold).length;
       if (images.length > 0 && aboveFold === 0) {
         insights.push(
-          "No images detected above the fold. Landing pages with a hero image see 40% higher engagement."
+          "No images detected above the fold. Strong landing pages usually lead with a visual that shows the product or its outcome."
         );
       }
       break;
@@ -337,12 +335,12 @@ function generatePageInsights(result: ScanResult): string[] {
       const headings = result.headings.headings.map((h) => h.text.toLowerCase());
       const hasHighlighted = headings.some((h) => /recommend|popular|best|featured/i.test(h));
       insights.push(
-        `Pricing pages that highlight a recommended plan see 20% higher conversion. ${hasHighlighted ? "Found" : "Did not find"} a highlighted plan.`
+        `A visually highlighted "recommended" plan helps undecided visitors choose. ${hasHighlighted ? "Found" : "Did not find"} a highlighted plan on your page.`
       );
       const crawledText = result.crawl.elements.map((e) => e.textContent.toLowerCase()).join(" ");
       const hasToggle = /annual|monthly|yearly|billing/i.test(crawledText);
       insights.push(
-        `Annual/monthly toggle saves customers 15-20% on average. ${hasToggle ? "Found" : "Did not find"} a billing toggle.`
+        `An annual/monthly billing toggle is standard on pricing pages and rewards commitment. ${hasToggle ? "Found" : "Did not find"} one on your page.`
       );
       break;
     }
@@ -352,13 +350,13 @@ function generatePageInsights(result: ScanResult): string[] {
         + result.forms.orphanedFields.length;
       if (totalFields > 0) {
         insights.push(
-          `${totalFields} form field${totalFields !== 1 ? "s" : ""} on your checkout. Reducing by 1 field typically improves completion by 10%.`
+          `${totalFields} form field${totalFields !== 1 ? "s" : ""} on your checkout. Every field is a chance to abandon — audit each one for necessity.`
         );
       }
       const crawledText = result.crawl.elements.map((e) => e.textContent.toLowerCase()).join(" ");
       const hasGuest = /guest|without account|no account/i.test(crawledText);
       insights.push(
-        `Guest checkout option: ${hasGuest ? "found" : "not found"}. 24% of users abandon when forced to create an account.`
+        `Guest checkout option: ${hasGuest ? "found" : "not found"}. 24% of users abandon when forced to create an account (Baymard Institute).`
       );
       break;
     }
@@ -377,7 +375,7 @@ function generatePageInsights(result: ScanResult): string[] {
       ).length;
       if (formsWithAutocomplete === 0 && result.forms.forms.length > 0) {
         insights.push(
-          "No autocomplete attributes detected. Adding them lets browsers auto-fill, reducing friction by up to 30%."
+          "No autocomplete attributes detected. Adding them lets browsers fill fields instantly and without typos — the fastest form is one the visitor barely has to touch."
         );
       }
       break;
@@ -395,7 +393,7 @@ function generatePageInsights(result: ScanResult): string[] {
       const hasSocial = /share|twitter|facebook|linkedin|x\.com/i.test(crawledText);
       if (!hasSocial) {
         insights.push(
-          "No social sharing buttons detected. Shared articles drive 3-5x more traffic."
+          "No social sharing buttons detected — an easy way to let readers bring you new traffic."
         );
       }
       break;
@@ -432,7 +430,7 @@ function generatePageInsights(result: ScanResult): string[] {
       const hasReviews = /review|rating|star|\u2605/i.test(crawledText);
       if (!hasReviews) {
         insights.push(
-          "No customer reviews detected. Products with reviews convert 270% better than those without."
+          "No customer reviews detected. Reviews can lift product-page conversion by as much as 270% (Spiegel Research Center)."
         );
       }
       break;
@@ -655,7 +653,7 @@ function generateNarrative(category: string, findings: Finding[], result: ScanRe
       }
 
       const detail = parts.length > 0 ? parts.join(", ") + ". " : "";
-      return `${detail}These ${count} issue${count !== 1 ? "s" : ""} affect an estimated 15% of visitors using assistive technology, and may expose you to legal compliance risks.`;
+      return `${detail}These ${count} issue${count !== 1 ? "s" : ""} shut out visitors who rely on assistive technology, and may expose you to accessibility compliance risk.`;
     }
 
     case "Forms": {
@@ -672,7 +670,7 @@ function generateNarrative(category: string, findings: Finding[], result: ScanRe
       }
 
       const detail = parts.length > 0 ? parts.join(", and ") + ". " : "";
-      return `${detail}Each additional form barrier typically reduces completion rates by 5-10%. Simplifying your forms could have a direct impact on conversions.`;
+      return `${detail}Every extra barrier gives visitors a reason to quit before finishing — simplifying your forms is one of the most direct conversion levers you have.`;
     }
 
     case "Content": {

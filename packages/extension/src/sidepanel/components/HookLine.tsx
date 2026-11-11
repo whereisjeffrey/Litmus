@@ -4,6 +4,8 @@ import type { QuickWin } from "@placeholder/shared";
 interface HookLineProps {
   hookLine: string;
   quickWins: QuickWin[];
+  /** Honest overall read from the AI consultant */
+  pageAssessment?: string;
 }
 
 const IMPACT_COLOR: Record<string, string> = {
@@ -11,7 +13,16 @@ const IMPACT_COLOR: Record<string, string> = {
   Medium: "text-warning-600",
 };
 
-export default function HookLine({ hookLine, quickWins }: HookLineProps) {
+/** Badge styling per assessment — honest colors, no sugarcoating */
+const ASSESSMENT_STYLE: Record<string, { label: string; className: string }> = {
+  strong: { label: "Strong page", className: "bg-emerald-100 text-emerald-700" },
+  solid: { label: "Solid page", className: "bg-sky-100 text-sky-700" },
+  "needs-work": { label: "Needs work", className: "bg-amber-100 text-amber-700" },
+  struggling: { label: "Struggling", className: "bg-red-100 text-red-700" },
+};
+
+export default function HookLine({ hookLine, quickWins, pageAssessment }: HookLineProps) {
+  const assessment = pageAssessment ? ASSESSMENT_STYLE[pageAssessment] : undefined;
   return (
     <div className="p-4 rounded-xl" style={{ backgroundColor: "#ECF8FF" }}>
       {/* Smart Insight header */}
@@ -32,10 +43,19 @@ export default function HookLine({ hookLine, quickWins }: HookLineProps) {
           />
           <circle cx="19" cy="5" r="1.2" fill="#60A5FA" />
         </svg>
-        <div>
-          <span className="text-2xs font-medium text-accent-500 uppercase tracking-wide">
-            Smart Insight
-          </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-2xs font-medium text-accent-500 uppercase tracking-wide">
+              Smart Insight
+            </span>
+            {assessment && (
+              <span
+                className={`inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-semibold ${assessment.className}`}
+              >
+                {assessment.label}
+              </span>
+            )}
+          </div>
           <p className="text-xs font-medium text-surface-800 leading-snug mt-1">
             {hookLine}
           </p>
