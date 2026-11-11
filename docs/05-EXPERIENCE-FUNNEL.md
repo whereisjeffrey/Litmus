@@ -130,3 +130,38 @@ Monetization is explicitly second priority right now; parked shapes: one-time re
 2. **Pipeline additions:** sharp-pair selection rule; opportunity-card generation (class + located sentence + stakes sentence) as a synthesis output; site-fact extraction (cross-instance counts) as a first-class finding property.
 3. **Copy source of truth:** the example cards above are the register benchmark; critique output should be evaled against them.
 4. Open: class taxonomy (trust break / friction / credibility / commitment mismatch / …) — needs a fixed, small vocabulary; megaphone rotation logic; where Act 3 lives pre-analytics-connect.
+
+---
+
+## Appendix A — the finding class taxonomy (draft 1)
+
+A **closed vocabulary of seven classes**. Every finding gets exactly one primary class; the class drives the opportunity card's label, its stakes sentence, and which research-anchor family the KB lookup searches. If a finding fits no class, it's either a technical check (collapsed, unsold) or it isn't a finding — the taxonomy doubles as a qualitative filter.
+
+| # | Class | It means | The detecting question | Example from our critiques |
+|---|---|---|---|---|
+| 1 | **Trust Break** | A promise about the *deal* is contradicted later | "Where does the product contradict its own offer?" | Free-returns hero vs. "final sale" badge; hidden $14.90 shipping |
+| 2 | **Expectation Break** | The *interface* signals one thing and does another | "Where does a label or pattern lie about what happens next?" | "Check our prices" starts account creation (Lemonade); "Complete onboarding" isn't the end (Copilot) |
+| 3 | **Credibility Leak** | A claim reads as a trick and discounts the real ones | "What would a skeptic call manipulative?" | "Only 2 left!" on 14 of 16 products, surviving refresh |
+| 4 | **Friction at Intent** | Effort or diversion at a high-intent moment | "What makes the customer work, wait, or leave right when they've decided?" | Promo field sending buyers coupon-hunting; PDF size guide mid-purchase |
+| 5 | **Commitment Mismatch** | The ask outruns the trust earned so far | "What does the product demand before it has given anything?" | Legal name + ToS before any price (Lemonade); wishlist needs an account, cart doesn't |
+| 6 | **Buried Value** | What the customer wants exists but can't be found | "What's present that behaves as absent?" | Guest checkout below the fold |
+| 7 | **Confidence Gap** | Missing reassurance at a fear moment | "Where does the customer have a question nobody answers?" | No scale reference in photos; no "what happens next" after signup |
+
+**Stakes sentence templates** (the card's second line writes itself from the class):
+
+1. Trust Break → "Contradictions of this class are documented drivers of cart abandonment."
+2. Expectation Break → "Broken interaction promises are a known cause of mid-flow drop-off and support load."
+3. Credibility Leak → "A documented credibility risk that discounts every claim on the page — including your real offers."
+4. Friction at Intent → "A known contributor to abandonment at the moment customers decide to pay you."
+5. Commitment Mismatch → "Premature asks are documented drop-off points at signup and checkout."
+6. Buried Value → "Customers can't choose what they can't find — a measured drag on conversion."
+7. Confidence Gap → "Unanswered doubts surface as hesitation at payment and inflated returns."
+
+**Boundary rules:**
+- Trust Break vs. Expectation Break: *deal* vs. *interaction*. "You said free shipping" is Trust; "the button lied about what it does" is Expectation.
+- Credibility Leak is the only class where the content itself is the problem (manipulation, cherry-picking); it never requires a contradiction.
+- Friction vs. Buried Value: friction adds work to a found path; buried value hides the path entirely.
+- Scope is orthogonal: any class can be page-scope or **journey-scope** (the paid climax tier). Cross-page contradictions are almost always Trust or Expectation Breaks at journey scope.
+- Strengths reuse the same vocabulary inverted ("Trust kept: security setup *before* bank linking") — one language for both directions keeps praise structural, not decorative.
+
+**Pipeline hook:** `class` becomes a required enum on every synthesis finding; the adversary verifies class fit as part of review (a finding whose class doesn't survive scrutiny is a KILLED finding); the KB files get re-tagged by class so citation lookup narrows by class + page type.
