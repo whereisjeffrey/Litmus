@@ -1,0 +1,43 @@
+{
+  "v": 3,
+  "assetGroups": {
+    "Mascot": {
+      "files": {
+        "litmus-mascot.svg": {
+          "blob": "71a76add9cdd6ad7337ac55b9f7d961b",
+          "name": "litmus-mascot.svg",
+          "size": 459,
+          "type": "image/svg+xml"
+        }
+      },
+      "name": "Mascot",
+      "order": [
+        "litmus-mascot.svg"
+      ],
+      "tile": "l"
+    }
+  },
+  "blobs": {},
+  "createdOnFiles": {
+    "at": "2026-11-10T20:05:00Z",
+    "v": 1
+  },
+  "docs": {
+    "readme": "project/README.md",
+    "sections": []
+  },
+  "groups": [
+    "Mascot"
+  ],
+  "lastChange": {
+    "at": "2026-11-10T21:40:00Z",
+    "by": "Jeffrey",
+    "note": "Added Exhibit component — framed crops of the user's own page inside finding cards",
+    "via": "Claude Code"
+  },
+  "layout": "files",
+  "libraries": [],
+  "namespace": "Litmus",
+  "sections": {},
+  "title": "Litmus Design System"
+}

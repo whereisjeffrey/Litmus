@@ -4,6 +4,8 @@
 
 **Status:** Phase 1 in progress
 **Last Updated:** 2026-03-24
+
+> **Note (Nov 2026): this file is stale.** Start with [docs/04-DESIGN-DIRECTION.md](docs/04-DESIGN-DIRECTION.md) for current status and decisions; [docs/01–03](docs/) (July) supersede the Phase 2 AI-pipeline plan below and move flow testing up from Phase 7.
 **Name:** "Placeholder" (final name TBD — single `APP_NAME` constant for easy swap)
 
 ---

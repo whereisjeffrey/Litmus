@@ -1,0 +1,48 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>litmus — cover</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Inter:wght@400&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; }
+  .cover { position: relative; width: 960px; height: 288px; background: var(--surface, #FFFFFF); overflow: hidden; }
+  .cover svg { position: absolute; inset: 0; }
+  .b-chart { fill: var(--chartreuse, #D7F056); rx: 18px; }
+  .b-cobalt { fill: var(--cobalt, #2440F0); rx: 18px; }
+  .b-pink { fill: var(--pink-band, #FBD3EC); rx: 18px; }
+  .b-ink { fill: var(--ink, #1C2142); rx: 18px; }
+  .pill-ink { fill: var(--ink, #1C2142); }
+  .disc-chart { fill: var(--chartreuse, #D7F056); }
+  .name { position: absolute; left: 48px; bottom: 64px; font-family: "Baloo 2", "Arial Rounded MT Bold", sans-serif; font-weight: 800; font-size: 120px; line-height: 0.9; color: var(--ink, #1C2142); max-width: 440px; }
+  .tagline { position: absolute; left: 52px; bottom: 38px; font-family: Inter, system-ui, sans-serif; font-size: 13px; color: var(--ink-faint, #6E7390); max-width: 440px; }
+</style>
+</head>
+<body>
+<div class="cover">
+  <!--
+    Derivation:
+    blocks — chartreuse slab 460×150 (radius-block 18, bleeds top-right), cobalt band 400×70, pink-band 460×76 (bleeds bottom-right), ink tile 62×70: the drawer's own stacked full-bleed bands.
+    arrangement — a strip stack of unequal horizontal bands bleeding off the right edge, the way the panel composes top-to-bottom.
+    pattern — "soft, friendly, large radii → pills and discs": README calls pills the house shape; 4 ink pills (rx 8 = half short side) on the chartreuse slab at space-3 (12px) gaps, 3 chartreuse discs on cobalt sized off space steps.
+    scales — radii from radius-block (18) and radius-pill behavior (half short side); gaps are space-3 (12).
+  -->
+  <svg width="960" height="288" viewBox="0 0 960 288" aria-hidden="true">
+    <rect class="b-chart" x="500" y="-20" width="460" height="150" rx="18"/>
+    <rect class="pill-ink" x="532" y="58" width="72" height="16" rx="8"/>
+    <rect class="pill-ink" x="616" y="58" width="72" height="16" rx="8"/>
+    <rect class="pill-ink" x="700" y="58" width="72" height="16" rx="8"/>
+    <rect class="pill-ink" x="784" y="58" width="72" height="16" rx="8"/>
+    <rect class="b-ink" x="482" y="146" width="62" height="70" rx="18"/>
+    <rect class="b-cobalt" x="560" y="146" width="400" height="70" rx="18"/>
+    <circle class="disc-chart" cx="628" cy="181" r="10"/>
+    <circle class="disc-chart" cx="700" cy="177" r="14"/>
+    <circle class="disc-chart" cx="784" cy="186" r="18"/>
+    <rect class="b-pink" x="500" y="232" width="460" height="76" rx="18"/>
+  </svg>
+  <div class="name">litmus</div>
+  <div class="tagline">The watchful, friendly eye on your UX.</div>
+</div>
+</body>
+</html>

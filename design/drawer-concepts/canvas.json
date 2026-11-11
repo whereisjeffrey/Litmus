@@ -1,0 +1,17 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-11-10T19:30:00Z" },
+  "title": "Litmus Drawer Concepts",
+  "launch": { "view": "canvas" },
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 380, "h": 1480, "title": "A — Mostly white" },
+    "Loud.dc.html": { "x": 460, "y": 0, "w": 380, "h": 1560, "title": "B — Full color" },
+    "Dense.dc.html": { "x": 920, "y": 0, "w": 380, "h": 2740, "title": "C — Dense site, full volume" },
+    "Context.dc.html": { "x": 0, "y": 2540, "w": 1440, "h": 900, "title": "B docked in the browser — Show Me active", "radius": 12 }
+  },
+  "order": ["Main.dc.html", "Loud.dc.html", "Dense.dc.html", "Context.dc.html"],
+  "notes": {
+    "t1": { "x": 0, "y": -300, "text": "Litmus drawer — two directions", "kind": "title1", "maxW": 1300 }
+  },
+  "designSystems": []
+}

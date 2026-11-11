@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 104" role="img" aria-label="Litmus mascot — a pink blob with googly eyes">
+  <path d="M8 104 V56 C8 22 32 6 60 6 C88 6 112 22 112 56 V104 Z" fill="#F291C7"/>
+  <circle cx="43" cy="56" r="14" fill="#FFFFFF"/>
+  <circle cx="47" cy="60" r="6" fill="#1C2142"/>
+  <circle cx="77" cy="51" r="16" fill="#FFFFFF"/>
+  <circle cx="81" cy="56" r="7" fill="#1C2142"/>
+</svg>
