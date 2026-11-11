@@ -125,6 +125,15 @@ Three sources, a ladder — and no number without a source:
 
 Verbs that carry the register: *costs, leaks, breaks, contradicts, discounts, teaches customers to hesitate, sends buyers off-site.* The mascot stays fun; the sentences stay serious. That contrast *is* the brand.
 
+**The house voice (decided 2026-11-11, after the V1/V2 side-by-side):** narrative, first-person consultant — *"I walked your checkout the way a first-time buyer would"* — with **no class labels on customer-facing surfaces** (the taxonomy runs the engine; it never appears in the copy a cold reader sees). Each finding opens with whichever **lead** hits hardest, and leads must vary across a screen — never monotone:
+
+1. **The quote** — a synthesized customer thinking aloud, always attributed as synthesized ("a first-time buyer, step 4 of your checkout · synthesized from our walk"). Reserved for the emotional breaks; at most ~2 per screen.
+2. **The site fact** — the measured number, cold: "14 of your 16 products say 'Only 2 left!' The badge survives a refresh. Your customers can count."
+3. **The contradiction** — two of their own statements side by side: "Saving an item requires an account. Buying one doesn't."
+4. **The observation** — one plain declarative: "Mid-purchase, your size guide opens a PDF on top of the checkout."
+
+The analyst's cost line (mechanism + citation) always follows the lead, whatever its form. Quotes are the spice, not the sauce: because the quote format reads as user research, every synthesized quote is labeled as synthesized — the device's power depends on never faking its provenance.
+
 ## 7. What keeps them (sketch — to hash out later, per Jeffrey)
 
 Monetization is explicitly second priority right now; parked shapes: one-time report · monitoring subscription (weekly re-walks, regression alerts, "re-checked today" lines, monthly impact letter in their numbers) · annual plan with quarterly full re-audits · per-journey deep audits as add-ons. The retention engine regardless of packaging: **fix verification + impact deltas** — the product that confirms you fixed it is the product you don't cancel.
