@@ -26,6 +26,8 @@ The core trade: **we are generous with diagnosis quality and withholding with br
 4. Good trailers show real scenes but never the ending. Our ending is the fix, the journey, and your numbers.
 
 > **This revises an earlier decision.** We previously said free = all findings on the page, fully visible. New rule: free = the 1–2 sharpest findings *complete* (exhibit, evidence, citation, Show Me), plus every remaining finding **located, classified, and counted** — but with mechanism and fix withheld. The honest-teaser laws still hold absolutely: every count real, every location real, nothing claimed that wasn't generated. We never blur text. We withhold like a doctor scheduling the follow-up, not like a paywall.
+>
+> **Imagery is the exception (decided 2026-11-11):** the no-blur law protects *our diagnosis text*, not *their pixels*. Locked findings may show their own screenshot blurred under a sharp located caption — the blur proves the evidence exists. And one locked finding per report gets the **"spot it" treatment**: the crop shown *clear* with the ring hidden — *"We see something in this screenshot. Do you?"* — so they hunt their own UI for the flaw. Blur never touches words, and never appears without a real located/classified caption above it.
 
 ---
 
@@ -36,6 +38,7 @@ The core trade: **we are generous with diagnosis quality and withholding with br
 1. **The Read** — 2–3 sentences, business register, already exposure-framed: not "we found some issues" but *"this page makes three promises your checkout later breaks — and it spends credibility on urgency it doesn't need."*
 2. **The sharp pair** — the two highest-conviction findings, fully expanded. Each carries: the exhibit (their pixels, ringed), the evidence quote, the research anchor (cited, never free-recalled), Show Me on the live page, and one line of consequence in exec language.
 3. **The count row** — real numbers only: "11 findings · 2 shown in full · every one survived adversarial review."
+4. **One named theme** — when findings cluster (see Act 2), Act 1 closes by naming exactly one site-wide habit with its count: *"Six of these are one habit: **The Overpromise** — your site keeps writing checks the checkout won't cash."* The name and count are free; the evidence stack and the other themes are paid. The sticky name is deliberate marketing: it's the sentence they'll repeat in Monday's standup.
 
 **Example — a sharp card, final copy register:**
 
@@ -79,6 +82,8 @@ Specificity about location and classification is what makes the tease credible �
 > *Located · verified · rewritten copy ready.*
 
 Note the status lines escalate: "fix drafted," "rewritten copy ready" — the treatment already exists, which is the ProLedger's honesty line generalized: **the counts are real, the work is done, the lock is only on the details.**
+
+**Themes — the layer above findings (decided 2026-11-11, and the dashboard's home view).** Findings fix pages; themes fix companies. A theme is a *habit*: 3+ findings sharing a class (or a tight cross-class cluster) get a sticky, per-site name in the house register — *The Overpromise. Door Clutter. Ask-Before-Earn.* The engine detects clusters systematically (the taxonomy is the detector); the model names them bespoke per site. Why themes matter commercially: they're **repeatable** (a founder recites the theme to their team — word-of-mouth built in) and they **survive redesigns** (fix the page, the finding dies; the habit reappears on the next page the team ships — *"we'll watch whether your new pricing page inherits The Overpromise"* is a subscription sentence). Dashboard home = the themes (3–4 habits with evidence stacks, mixed clear/blurred/spot-it exhibits); the journey map is tab 2 — their funnel as screenshot thumbnails of their own pages, findings pinned, unscanned pages as gray slots ("5 pages we haven't walked yet"); exposure ranking is a sort, not a view.
 
 **Board furniture:** the journey strip (per-step real counts, locked), the class breakdown ("4 trust · 3 friction · 2 credibility"), and the megaphone slot — one opportunity per visit gets promoted to the top with its stakes sentence amplified. Rotate it; urgency without rotation goes stale (we literally have a finding about that).
 
@@ -135,7 +140,7 @@ Monetization is explicitly second priority right now; parked shapes: one-time re
 
 ## Appendix A — the finding class taxonomy (draft 1)
 
-A **closed vocabulary of seven classes**. Every finding gets exactly one primary class; the class drives the opportunity card's label, its stakes sentence, and which research-anchor family the KB lookup searches. If a finding fits no class, it's either a technical check (collapsed, unsold) or it isn't a finding — the taxonomy doubles as a qualitative filter.
+A **closed vocabulary of eight classes**. Every finding gets exactly one primary class; the class drives the opportunity card's label, its stakes sentence, and which research-anchor family the KB lookup searches. If a finding fits no class, it's either a technical check (collapsed, unsold) or it isn't a finding — the taxonomy doubles as a qualitative filter.
 
 | # | Class | It means | The detecting question | Example from our critiques |
 |---|---|---|---|---|
@@ -146,6 +151,7 @@ A **closed vocabulary of seven classes**. Every finding gets exactly one primary
 | 5 | **Commitment Mismatch** | The ask outruns the trust earned so far | "What does the product demand before it has given anything?" | Legal name + ToS before any price (Lemonade); wishlist needs an account, cart doesn't |
 | 6 | **Buried Value** | What the customer wants exists but can't be found | "What's present that behaves as absent?" | Guest checkout below the fold |
 | 7 | **Confidence Gap** | Missing reassurance at a fear moment | "Where does the customer have a question nobody answers?" | No scale reference in photos; no "what happens next" after signup |
+| 8 | **Coherence Break** | The site disagrees with itself or with convention | "Where do two parts of the site do the same job differently — or one part defy what everyone expects?" | Five buttons for the same action; a control living where no convention puts it |
 
 **Stakes sentence templates** (the card's second line writes itself from the class):
 
@@ -156,6 +162,7 @@ A **closed vocabulary of seven classes**. Every finding gets exactly one primary
 5. Commitment Mismatch → "Premature asks are documented drop-off points at signup and checkout."
 6. Buried Value → "Customers can't choose what they can't find — a measured drag on conversion."
 7. Confidence Gap → "Unanswered doubts surface as hesitation at payment and inflated returns."
+8. Coherence Break → "Inconsistency taxes every visit — customers relearn your site instead of using it."
 
 **Boundary rules:**
 - Trust Break vs. Expectation Break: *deal* vs. *interaction*. "You said free shipping" is Trust; "the button lied about what it does" is Expectation.
@@ -164,4 +171,6 @@ A **closed vocabulary of seven classes**. Every finding gets exactly one primary
 - Scope is orthogonal: any class can be page-scope or **journey-scope** (the paid climax tier). Cross-page contradictions are almost always Trust or Expectation Breaks at journey scope.
 - Strengths reuse the same vocabulary inverted ("Trust kept: security setup *before* bank linking") — one language for both directions keeps praise structural, not decorative.
 
-**Pipeline hook:** `class` becomes a required enum on every synthesis finding; the adversary verifies class fit as part of review (a finding whose class doesn't survive scrutiny is a KILLED finding); the KB files get re-tagged by class so citation lookup narrows by class + page type.
+- Coherence Break vs. Expectation Break: coherence is *internal or conventional* disagreement (parts of the site vs. each other, or vs. the web's norms); expectation is a single element lying about itself. Coherence findings often only matter in aggregate — they are the most theme-prone class.
+
+**Pipeline hook:** `class` becomes a required enum on every synthesis finding; the adversary verifies class fit as part of review (a finding whose class doesn't survive scrutiny is a KILLED finding); the KB files get re-tagged by class so citation lookup narrows by class + page type. **Themes hook:** after review, a clustering pass groups confirmed findings (same class, or tight cross-class affinity, 3+ members) into themes; the model names each theme per-site in the house register; the adversary gets final say on whether the cluster genuinely shares one habit.
