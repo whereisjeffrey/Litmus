@@ -20,7 +20,7 @@ The core trade: **we are generous with diagnosis quality and withholding with br
 
 **The trailer problem** (and why this doesn't cause it): if the two best scenes are free, does paying feel like the rest of the movie sucking? No — because the free peak and the paid peak are different goods, and the paid one is structurally reserved:
 
-1. **Full diagnosis, zero treatment — even on the sharp pair.** The free finding tells you you're sick with total precision; the cure (exact fix, rewritten copy, before/after exhibit, the steelman) is paid. Doctor model, not trailer model.
+1. **Full diagnosis, zero treatment on the sharp pair — with ONE exception (revised 2026-11-15): the floor model.** Exactly one finding per report opens all five layers (see "The finding, in five layers"), fix, options and cost included — the demo unit that proves the paid depth exists and is excellent. Every other finding follows the doctor model: diagnosis free, cure paid. We spend one cure to sell ten.
 2. **The climax can't leak.** The biggest finding in most audits is a journey-class finding (a promise that breaks across pages) — and free scans one page, so that class is *structurally* paid. The megaphone gets to say, honestly: *"the loudest thing we found isn't on this page."*
 3. **Breadth withholding on the sharp pair:** diagnose one instance at full sharpness; hold its siblings — *"the same break appears in 2 more places — held for the full report."*
 4. Good trailers show real scenes but never the ending. Our ending is the fix, the journey, and your numbers.
@@ -54,6 +54,35 @@ The core trade: **we are generous with diagnosis quality and withholding with br
 - No ask. Act 1 ends without a CTA. The restraint is the credibility.
 
 **Choosing the sharp pair** (pipeline rule, not editorial whim): highest conviction × **undeniability** (the best exhibit) × business exposure — in that order. Undeniability converts skeptics; raw stakes retain customers. Prefer a finding with a cross-instance count ("14 of 16 products") or a money moment (pricing, payment, signup). The global #1 by exposure is usually journey-class anyway — reserved as the paid climax, never spent here.
+
+---
+
+## The finding, in five layers (added 2026-11-15)
+
+Every finding is built to the same depth, and the tiers differ only in how many layers are open. The layers, in reading order:
+
+| # | Layer | What it holds | Voice |
+|---|---|---|---|
+| L1 | **The moment** | What's broke: the lead (quote / fact / contradiction / observation) + the exhibit | The customer's reality |
+| L2 | **The why** | The mechanism and the human cost — why this loses people, with the citation | The analyst's cost line |
+| L3 | **The fix** | The direction, stated plainly: what to change and what not to touch | The prescription |
+| L4 | **The solution, concretely** | 2–3 options with trade-offs (the copy-only patch · the proper fix · the best-in-class version), each with rewritten copy and a before/after built from *their* element | The options on the table |
+| L5 | **The cost to implement** | Who does it (marketer / designer / dev), effort in honest ranges, dependencies, what it touches in their stack | The estimate |
+
+L5 is where "technical" re-enters the product safely: not *our* scanner tech-speak, but *their* implementation reality — "a copy change, no dev, ships today" vs. "~2 dev-days in your checkout template." Estimates start from the detected stack and sharpen with the intake (below). Always ranges, never fake precision.
+
+**Gating by layer:**
+
+| Finding | L1 | L2 | L3 | L4 | L5 |
+|---|---|---|---|---|---|
+| **The floor model** (1 per report) | open | open | open | open | open |
+| The second sharp finding | open | open | held | held | held |
+| Most teased rows | open | one-clause taste | held | held | held |
+| A few teased rows | located line only | held | held | held | held |
+
+**The satisfaction law** (the free tier's exit test, in Jeffrey's words): the free user must leave thinking *"I'm happy I got the free experience — I got something real out of it — but I'm left with holes I now know about, and I need to fill them."* Satisfied AND incomplete. If testing shows satisfied-and-done, we opened too much; resentful-and-teased, too little.
+
+---
 
 ---
 
@@ -96,6 +125,24 @@ The conversion moment. Three moves, in exec language, honesty policy intact:
 1. **Aggregate the exposure:** "Nine of your eleven findings are tied to documented abandonment or conversion drivers. Three sit on your payment path."
 2. **Prove the sample worked:** the two free findings carry a "fixed it?" check — we re-verify on their live page and say so: *"Re-checked today: the shipping reveal still lands at step 4."* (Recurring, dated, automatic — this line alone teaches them we're watching, which is the subscription.)
 3. **Offer the expectation, in ranges, theirs:** "Connect your analytics and every fix gets a before/after in your numbers — completion rate, drop-off by step, recovered carts. Until then we quote documented ranges, not promises."
+
+---
+
+## The intake and the roadmap (added 2026-11-15)
+
+The layer-5 estimates unlock the product's most consultant-like move: **a built-in diagnostic conversation that turns the findings into a plan.**
+
+**The intake** — a short, conversational interview (the mascot's natural habitat; 5–8 questions, skippable): *How is the site built — Shopify, Webflow, custom? Who ships changes — you, a dev, an agency? How often do you release? Rough budget for fixes this quarter? What's the business priority right now?* Free to take: answering is an investment that personalizes everything (and effort invested is commitment made).
+
+**The roadmap** — the paid payoff: all findings re-sequenced into phases by impact × effort *given their answers*:
+
+> **This week, no dev needed** — 4 copy-only fixes your marketer can ship today (≈2 hours total)
+> **This sprint** — 5 template changes (≈3 dev-days on your Shopify theme)
+> **This quarter** — the checkout restructure, options A/B costed, ≈60% of your identified exposure
+
+Free users see the roadmap's **skeleton** after the intake — phase names, fix counts, effort totals ("4 fixes your team could ship this week — held") — contents paid. The skeleton alone reframes the report from "a list of problems" to "a plan I'm not executing yet," which is a sharper itch than any individual finding.
+
+**Why this matters strategically:** findings are a report; a sequenced, costed, constraint-aware plan is what $25K/month actually buys. No scanner can fake this, because it requires knowing the client. **Pipeline hooks:** finding schema gains L3–L5 fields (fixDirection, solutionOptions[] with trade-offs and before/after, implCost {who, effort-range, dependencies}); a small intake agent; a roadmap synthesis pass over confirmed findings + constraints; stack detection (platform fingerprinting) seeds L5 before the intake refines it.
 
 ---
 
