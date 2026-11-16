@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>six verticals, one anatomy</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.v{border:1.5px solid #D9DBE6;border-radius:12px;padding:13px;display:flex;flex-direction:column;gap:8px;background:#FFFFFF}
+.vh{display:flex;align-items:center;gap:7px}
+.vt{font-size:13px;font-weight:800}
+.mp{margin-left:auto;font-size:8.5px;font-weight:700;color:#2440F0;border:1px solid #2440F0;border-radius:999px;padding:2px 8px}
+.ft{font-size:12.5px;font-weight:800;line-height:1.3}
+.fb{font-size:10.5px;line-height:1.55}
+.fx{font-size:10px;line-height:1.5;border-top:1px solid #E5E7EB;padding-top:6px}
+.cc{display:inline-block;border:1px solid #D4D7DE;border-radius:999px;padding:1px 7px;font-size:8px;font-weight:600;color:#4A5068}
+</style>
+</helmet>
+<div style="width: 1520px; height: 1240px; box-sizing: border-box; background: #F6F2EA; color: #2A2E42; font-family: system-ui, sans-serif; display: flex; flex-direction: column; gap: 12px; padding: 18px; border: 1px solid #B9BDC9">
+
+  <div>
+    <p style="margin: 0; font-size: 17px; font-weight: 800">Six verticals, one anatomy</p>
+    <p style="margin: 3px 0 0; font-size: 11px; color: #4A5068">The walk changes persona and the money path changes name — the finding anatomy doesn&#39;t. Each card: the vertical&#39;s money path, one steelman-opened finding in its own language. Composite examples for pattern illustration, not live walks.</p>
+  </div>
+
+  <div style="flex-grow: 1; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr; gap: 12px; min-height: 0">
+
+    <!-- SHOPIFY DTC -->
+    <div class="v" style="border-color:#1C2142;border-width:2px">
+      <div class="vh"><span class="vt">DTC store</span><span class="mp">cart &#8594; paid order</span></div>
+      <p class="ft" style="margin:0">The $2.98 fee for a promise the product page already made</p>
+      <p class="fb" style="margin:0">Charging for return coverage is a legitimate call — apparel returns run 20&#8211;30%. The problem is the sequence: the product page says &#8220;easy returns,&#8221; and two clicks later the cart asks $2.98 for the same promise, pre-selected.</p>
+      <p class="fx" style="margin:0"><strong>Fix:</strong> one promise, kept everywhere — rename the add-on and un-check it, or fold returns into margin and keep the page line as written. <span class="cc">copy + 1 setting &#183; this week</span></p>
+      <span style="font-size:8.5px;color:#8A8FA3;margin-top:auto">the wedge vertical — walked live 2026-11-16</span>
+    </div>
+
+    <!-- SAAS -->
+    <div class="v">
+      <div class="vh"><span class="vt">SaaS</span><span class="mp">trial &#8594; paid seat</span></div>
+      <p class="ft" style="margin:0">The card ask, 14 days early</p>
+      <p class="fb" style="margin:0">Card-up-front is a real strategy — it filters for intent and lifts trial-to-paid conversion on the accounts that start. The cost sits upstream: the pricing page says &#8220;free 14-day trial, cancel anytime,&#8221; the signup asks for a card on day zero, and the cancel path runs 4 steps into a chat queue. The promise and the plumbing disagree.</p>
+      <p class="fx" style="margin:0"><strong>Fix:</strong> label it honestly (&#8220;free trial &#183; card required&#8221;) today; or move the card ask to day 11 with a notice email ahead of it. <span class="cc">copy &#183; today</span> <span class="cc">&#8776;1 dev-day</span></p>
+    </div>
+
+    <!-- BOOKING -->
+    <div class="v">
+      <div class="vh"><span class="vt">Booking &#38; reservations</span><span class="mp">inquiry &#8594; booked seat</span></div>
+      <p class="ft" style="margin:0">Eleven fields before one open table</p>
+      <p class="fb" style="margin:0">Collecting party details up front protects your floor plan and cuts no-shows — a real operational win. But the form asks 11 fields before showing a single available time, and the money question (&#8220;is Saturday even possible?&#8221;) goes unanswered until field 12. Diners who just want the answer leave with it unasked.</p>
+      <p class="fx" style="margin:0"><strong>Fix:</strong> availability first, details after the slot is chosen — the same 11 fields, resequenced behind a committed diner. <span class="cc">form re-order &#183; &#8776;1 dev-day</span></p>
+    </div>
+
+    <!-- FINTECH -->
+    <div class="v">
+      <div class="vh"><span class="vt">Fintech onboarding</span><span class="mp">application &#8594; funded account</span></div>
+      <p class="ft" style="margin:0">The SSN at step 2, the rate at step 6</p>
+      <p class="fb" style="margin:0">Identity verification isn&#39;t optional — KYC is the law, and asking is correct. The leak is sequencing and silence: the application asks for the SSN at step 2 of 6, before showing an estimated rate and without one sentence on why it&#39;s needed or how it&#39;s protected. Applicants aren&#39;t refusing the ask — they&#39;re refusing the order of it.</p>
+      <p class="fx" style="margin:0"><strong>Fix:</strong> estimated rate from a soft pull first; move full verification behind intent, with the why-we-ask sentence beside the field. <span class="cc">resequence &#183; &#8776;2 dev-days</span> <span class="cc">copy &#183; today</span></p>
+    </div>
+
+    <!-- LOCAL SERVICE -->
+    <div class="v">
+      <div class="vh"><span class="vt">Local services</span><span class="mp">visit &#8594; booked job</span></div>
+      <p class="ft" style="margin:0">The instant estimate that takes three days</p>
+      <p class="fb" style="margin:0">Routing quotes through a callback keeps your estimates accurate — nobody wants to honor a bad instant number. But the form header promises &#8220;instant estimate,&#8221; and the confirmation page says &#8220;we&#39;ll call within 2&#8211;3 business days.&#8221; The homeowner filled the form for the word <em>instant</em>; the next three competitors&#39; tabs are already open.</p>
+      <p class="fx" style="margin:0"><strong>Fix:</strong> keep the callback, change the promise — or show an instant range with the exact number to follow. <span class="cc">copy &#183; today</span> <span class="cc">range table &#183; &#8776;half a dev-day</span></p>
+    </div>
+
+    <!-- NONPROFIT -->
+    <div class="v">
+      <div class="vh"><span class="vt">Nonprofit</span><span class="mp">visit &#8594; completed gift</span></div>
+      <p class="ft" style="margin:0">The pre-checked monthly at the moment of generosity</p>
+      <p class="fb" style="margin:0">Recurring gifts are the lifeblood — monthly donors are worth several times a one-time gift, and asking is right. Pre-checking the box is the leak: the donor arrived to give once, and the form decided otherwise, with &#8220;cover 4% processing&#8221; pre-checked beside it. The uplift shows up this month; the disputes, cancellations and unsubscribes show up all year.</p>
+      <p class="fx" style="margin:0"><strong>Fix:</strong> un-check both; make monthly the highlighted, argued-for option (&#8220;$15/mo funds a full school year&#8221;) instead of the silent default. <span class="cc">form settings &#183; today</span></p>
+    </div>
+
+  </div>
+
+  <p style="margin: 0; font-size: 9.5px; color: #6A7086">Same spine every time: grant the trade-off &#8594; the located fact &#8594; the business cost &#8594; the fix pair with prices. What changes per vertical: the persona walking, the money-path vocabulary, and which knowledge-base playbook the citations draw from. The engine is vertical-agnostic; only the dictionaries swap.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1520,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

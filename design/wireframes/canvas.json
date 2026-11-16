@@ -45,7 +45,9 @@
     "W5-Intake.dc.html": { "x": 2940, "y": 2300, "w": 520, "h": 960, "title": "5 · The intake — six questions" },
     "W6-Roadmap.dc.html": { "x": 3540, "y": 2300, "w": 1240, "h": 940, "title": "6 · The roadmap — locked / unlocked" },
     "W7-Verify.dc.html": { "x": 4860, "y": 2300, "w": 520, "h": 560, "title": "7 · Overnight verification" },
-    "LiveRun-Chubbies.dc.html": { "x": 0, "y": 4980, "w": 380, "h": 2240, "title": "Live run · chubbiesshorts.com — walked 2026-11-16" }
+    "LiveRun-Chubbies.dc.html": { "x": 0, "y": 4980, "w": 380, "h": 2240, "title": "Live run · chubbiesshorts.com — walked 2026-11-16" },
+    "CardLanguage.dc.html": { "x": 0, "y": 7560, "w": 1520, "h": 1560, "title": "The card language — 16 named patterns" },
+    "Verticals.dc.html": { "x": 1600, "y": 7560, "w": 1520, "h": 1240, "title": "Six verticals, one anatomy" }
   },
   "createdOnFiles": {
     "at": "2026-11-11T12:52:34.296Z",
@@ -69,6 +71,7 @@
       "y": -170
     },
     "t2": { "x": 0, "y": 2055, "text": "The product, screen by screen — rebuilt from scratch, nothing in a frame but what it renders", "kind": "title1", "maxW": 1700 },
+    "t4": { "x": 0, "y": 7420, "text": "The UI language — every shape the voice renders as, and proof the anatomy travels across verticals", "kind": "title1", "maxW": 1900 },
     "t3": { "x": 0, "y": 4740, "text": "Live run — a real store, walked today. New voice recipe: open with the trade-off (the steelman), facts with counts, competitor contrast only where verified, cited research, fix + options + cost. No synthesized quotes anywhere.", "kind": "title1", "maxW": 1700 },
     "r5": {
       "fill": "pink",
@@ -126,7 +129,9 @@
     "W5-Intake.dc.html",
     "W6-Roadmap.dc.html",
     "W7-Verify.dc.html",
-    "LiveRun-Chubbies.dc.html"
+    "LiveRun-Chubbies.dc.html",
+    "CardLanguage.dc.html",
+    "Verticals.dc.html"
   ],
   "pages": [],
   "title": "Funnel Wireframes"
