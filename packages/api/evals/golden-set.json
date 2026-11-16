@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "note": "Seed cases. Grow from Stage D kills, UI dismissals, and observed misses. URLs are representative; pin concrete URLs + archived snapshots when the runner is built.",
   "cases": [
     {
@@ -81,6 +81,53 @@
         }
       ],
       "provenance": "Seed trap: minimalism heuristic vs. trust-seeking behavior"
+    },
+    {
+      "id": "chubbies-live-2026-11-16",
+      "url": "https://www.chubbiesshorts.com/",
+      "pageType": "Product page + cart + checkout entry",
+      "industry": "ecommerce",
+      "task": "Buy a pair of shorts in your size, shipped to your home",
+      "expected": [
+        {
+          "finding": "A pre-selected $2.98 'Checkout+' fee in the cart whose decline button reads 'CHECKOUT WITHOUT FREE RETURNS' — directly after the product page promised 'Easy returns & exchanges within 30 days'. The promise is sold back as an add-on, and the fee reappears at payment as 'Unlock free returns'.",
+          "whyItMatters": "Promise contradiction + negative-option framing at the money step; the floor-model finding of the run"
+        },
+        {
+          "finding": "Identical sitewide markdowns ($64.50 struck to $40.00 on every card) wearing five different badge labels: ALL-TIME BESTSELLER, PRICE DROP, MARKDOWN, ON DISCOUNT, SALE PRICE.",
+          "whyItMatters": "Label rotation is visible to anyone comparing two cards; one staged label discounts the true claims (real bestseller, real stock)"
+        },
+        {
+          "finding": "Shipping cost ($5.00 standard) is first revealed on the final payment page; the advertised free-shipping threshold ($50+, Collective members only) is unreachable with any single sale item since the promo prices everything at $40.",
+          "whyItMatters": "Late cost disclosure at the highest-intent moment; the threshold promise cannot be met by the promoted purchase"
+        },
+        {
+          "finding": "Two full-screen interceptions stand between 'checkout' and the first checkout field: a 'Recommended for You' upsell modal, then a loyalty-program ('Chubbies Collective') join/sign-in modal with guest checkout as a small text link.",
+          "whyItMatters": "Stacked interceptions at declared purchase intent"
+        },
+        {
+          "finding": "The marketing-consent checkbox ('Sign me up for news and offers') arrives pre-checked on the payment page.",
+          "whyItMatters": "Pre-checked consent at the moment of least attention"
+        }
+      ],
+      "forbidden": [
+        {
+          "element": "The delivery countdown ('Get it by Fri 20th Nov | Order within 3h 36m') on the product page",
+          "naiveHeuristic": "Countdown timers are fake urgency / dark pattern",
+          "whyCorrect": "A cutoff-based delivery countdown is plausibly real (carrier cutoffs exist) and it ticked consistently across observations. Without evidence that it resets per visitor/refresh, calling it fake is an unverified accusation. Flag only with reset evidence; the walk did not establish it."
+        },
+        {
+          "element": "The existence of the Chubbies Collective loyalty program and its $50+ member free-shipping perk",
+          "naiveHeuristic": "Loyalty programs / membership gates add friction and should be removed",
+          "whyCorrect": "A loyalty program is standard, legitimate retention practice. The finding is its PLACEMENT (a join modal intercepting checkout) and the arithmetic of its threshold against the promo — never that the program exists."
+        },
+        {
+          "element": "Checkout handing off to Shop Pay (shop.app) for recognized returning buyers",
+          "naiveHeuristic": "Third-party redirect at checkout is friction / loses brand control",
+          "whyCorrect": "A recognized wallet with saved address and payment is the fastest path to purchase for returning buyers and is standard Shopify behavior. Flagging the handoff itself misreads a conversion aid as friction."
+        }
+      ],
+      "provenance": "First live walk, 2026-11-16, via Chrome (screenshots in session). Register benchmark copy: evals/fixtures/chubbies-2026-11-16.md; board: design/wireframes/LiveRun-Chubbies.dc.html"
     }
   ]
 }

@@ -4,6 +4,15 @@ The golden set is how we tune the pipeline on evidence instead of vibes
 (docs/03 §5). Every prompt or model change gets scored against it before
 shipping.
 
+Two layers, two runners:
+- **Content** (`golden-set.json` + `run-evals.ts`) — did it find the right
+  things and avoid the traps?
+- **Voice** (`VOICE-LAWS.md` + `voice-laws.json` + `check-voice.ts`) — does it
+  speak like the consultant we sell? Founder feedback becomes numbered, graded
+  laws with origin dates; the deterministic subset runs free/offline in CI.
+  First register benchmark: `fixtures/chubbies-2026-11-16.md` (the first live
+  run). A report ships only when both layers pass.
+
 ## Structure
 
 - `golden-set.json` — the cases. Each case is a real page plus the findings a

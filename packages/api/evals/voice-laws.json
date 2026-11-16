@@ -1,0 +1,159 @@
+{
+  "version": 1,
+  "note": "Machine form of VOICE-LAWS.md. regex laws run free/offline; judge laws need --judge. appliesTo: 'finding' = headline+narrative+recommendation per finding; 'summary' = report summary; 'all' = both.",
+  "laws": [
+    {
+      "id": "V1-opportunity-framing",
+      "severity": "fail",
+      "appliesTo": "all",
+      "checks": [
+        {
+          "type": "regex",
+          "failWhen": "match",
+          "pattern": "your (checkout|store|site|page|cart|team|brand|copy) (does the un-?convincing|talks? (them|people|buyers|customers) (back )?out|drives (them|people|buyers|customers) (away|off)|scares (them|people|buyers|customers)|pushes (them|people|buyers|customers) away)",
+          "flags": "i",
+          "explain": "Indicts the owner's work — the canonical banned construction"
+        },
+        {
+          "type": "judge",
+          "question": "Would the person who BUILT the element under critique feel accused or informed? The text must critique moments/elements and frame findings as recoverable opportunity, never as the owner doing a bad job, and must contain no wit at the site's expense. Does this text comply?"
+        }
+      ]
+    },
+    {
+      "id": "V2-tradeoff-first",
+      "severity": "fail",
+      "appliesTo": "finding",
+      "checks": [
+        {
+          "type": "judge",
+          "question": "Does the narrative OPEN by granting the strongest honest reason the design might be intentional (a real cost or constraint — the steelman), before showing where that trade-off leaks value? An opening that goes straight to the problem fails."
+        }
+      ]
+    },
+    {
+      "id": "V3-quotes-are-evidence",
+      "severity": "fail",
+      "appliesTo": "finding",
+      "checks": [
+        {
+          "type": "regex",
+          "failWhen": "match",
+          "pattern": "synthesized from (our|my|the) walk|^\\s*[\"“]",
+          "flags": "im",
+          "explain": "Synthesized-quote device or quote-led narrative in customer-facing copy"
+        },
+        {
+          "type": "judge",
+          "question": "Does the customer-facing narrative lead with, or lean on, a simulated/synthesized customer quote or imagined customer inner monologue? (Quotes belong only in evidence refs.) Answer compliant only if no such device appears in the narrative."
+        }
+      ]
+    },
+    {
+      "id": "V4-no-class-labels",
+      "severity": "fail",
+      "appliesTo": "all",
+      "checks": [
+        {
+          "type": "regex",
+          "failWhen": "match",
+          "pattern": "trust break|expectation break|credibility leak|friction at intent|commitment mismatch|buried value|confidence gap|coherence break",
+          "flags": "i",
+          "explain": "Internal taxonomy label in customer-facing copy"
+        }
+      ]
+    },
+    {
+      "id": "V5-no-feelings-speak",
+      "severity": "fail",
+      "appliesTo": "all",
+      "checks": [
+        {
+          "type": "regex",
+          "failWhen": "match",
+          "pattern": "(may|might|could) (feel|be) (frustrat|confus|annoy|overwhelm)|users (might|may) (not )?(like|want|feel)|customers might feel|makes? the site feel",
+          "flags": "i",
+          "explain": "Feelings-speak — replace with business consequence"
+        },
+        {
+          "type": "judge",
+          "question": "Is every consequence stated in business terms (abandonment, discounted claims, lost sales, trust spent) rather than speculated user emotions ('users might feel confused')? "
+        }
+      ]
+    },
+    {
+      "id": "V6-located-and-counted",
+      "severity": "warn",
+      "appliesTo": "finding",
+      "checks": [
+        {
+          "type": "regex",
+          "failWhen": "absent",
+          "pattern": "\\d",
+          "flags": "",
+          "explain": "Narrative contains no number at all — likely unlocated/uncounted (heuristic; judge grades fully)"
+        },
+        {
+          "type": "judge",
+          "severity": "fail",
+          "question": "Does every substantive claim carry a count and a location ('14 of 16 products', 'step 4 of your checkout')? Adjectives arriving without a number or location fail."
+        }
+      ]
+    },
+    {
+      "id": "V7-cited-research-only",
+      "severity": "fail",
+      "appliesTo": "finding",
+      "checks": [
+        {
+          "type": "regex-with-null-research",
+          "failWhen": "match",
+          "pattern": "\\b\\d{1,2}(\\.\\d+)?%",
+          "flags": "",
+          "explain": "A percentage claimed while the finding's research field is null — free-recalled statistic"
+        }
+      ]
+    },
+    {
+      "id": "V8-competitor-contrast-verified",
+      "severity": "fail",
+      "appliesTo": "finding",
+      "checks": [
+        {
+          "type": "judge",
+          "question": "IF the text makes any claim about a competitor: is it attributed to a verifiable observation from this run (named competitor, what was seen, link/screenshot reference) AND does it actually contrast with the site under review? A competitor claim that is unverified, vague, or shows the competitor doing the same thing fails. If no competitor is mentioned, answer compliant."
+        }
+      ]
+    },
+    {
+      "id": "V9-no-scanner-residue",
+      "severity": "fail",
+      "appliesTo": "all",
+      "checks": [
+        {
+          "type": "regex",
+          "failWhen": "match",
+          "pattern": "\\b\\d{1,3}\\s*/\\s*100\\b|\\bscore of \\d|\\balt text\\b|\\bh[12] tag\\b|\\bschema markup\\b|\\bmeta tag\\b|\\bCLS\\b|\\bLCP\\b|\\bTTFB\\b|\\baria-",
+          "flags": "i",
+          "explain": "Score or dev-speak unit in customer-facing copy"
+        }
+      ]
+    },
+    {
+      "id": "V10-strengths-specific",
+      "severity": "warn",
+      "appliesTo": "report",
+      "checks": [
+        {
+          "type": "strengths-nonempty",
+          "failWhen": "absent",
+          "explain": "Report has no strengths — praise is what makes critique credible (zero findings reports exempt)"
+        },
+        {
+          "type": "judge",
+          "question": "Are the listed strengths specific and evidenced ('96% true-to-size shown at the size picker') rather than generic ('clean design', 'good navigation')?"
+        }
+      ]
+    }
+  ]
+}
