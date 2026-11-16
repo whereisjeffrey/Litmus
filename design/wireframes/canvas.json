@@ -1,0 +1,133 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Act2.dc.html": {
+      "h": 900,
+      "title": "Act 2 · The living report — home",
+      "w": 1200,
+      "x": 1800,
+      "y": 0
+    },
+    "Act3.dc.html": {
+      "h": 820,
+      "title": "Act 3 · The stakes",
+      "w": 1200,
+      "x": 1800,
+      "y": 1020
+    },
+    "Artboard-5ons.dc.html": {
+      "h": 600,
+      "handmade": true,
+      "title": "Artboard 1",
+      "w": 800,
+      "x": 0,
+      "y": 0
+    },
+    "Main.dc.html": {
+      "h": 1680,
+      "title": "Act 1 · V1 — labeled findings",
+      "w": 380,
+      "x": 880,
+      "y": 0
+    },
+    "Narrative.dc.html": {
+      "h": 2080,
+      "title": "Act 1 · V2 — narrative + 5-layer floor model",
+      "w": 380,
+      "x": 1340,
+      "y": 0
+    },
+    "W1-Walk.dc.html": { "x": 0, "y": 2300, "w": 380, "h": 920, "title": "1 · The walk, live" },
+    "W2-Read.dc.html": { "x": 460, "y": 2300, "w": 380, "h": 2320, "title": "2 · What it found — the free report" },
+    "W3-ShowMe.dc.html": { "x": 920, "y": 2300, "w": 960, "h": 600, "title": "3 · Show me — on their page" },
+    "W4-Report.dc.html": { "x": 1960, "y": 2300, "w": 900, "h": 700, "title": "4 · The report — three habits" },
+    "W5-Intake.dc.html": { "x": 2940, "y": 2300, "w": 520, "h": 960, "title": "5 · The intake — six questions" },
+    "W6-Roadmap.dc.html": { "x": 3540, "y": 2300, "w": 1240, "h": 940, "title": "6 · The roadmap — locked / unlocked" },
+    "W7-Verify.dc.html": { "x": 4860, "y": 2300, "w": 520, "h": 560, "title": "7 · Overnight verification" },
+    "LiveRun-Chubbies.dc.html": { "x": 0, "y": 4980, "w": 380, "h": 2240, "title": "Live run · chubbiesshorts.com — walked 2026-11-16" }
+  },
+  "createdOnFiles": {
+    "at": "2026-11-11T12:52:34.296Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {},
+  "notes": {
+    "n1": {
+      "fill": "gray",
+      "text": "Side-by-side test: V1 labels each finding with its class (TRUST BREAK · HIGH). V2 drops all labels — every finding is a moment with a synthesized customer voice, and the analyst explains what it costs. Same structure, same facts, same locks. Which one sounds like the expensive consultant?",
+      "w": 840,
+      "x": 880,
+      "y": -170
+    },
+    "n2": {
+      "fill": "gray",
+      "text": "Acts 2–3 in the V2 voice: the living report (not a dashboard). Habits in plain English, mixed exhibits (clear / blurred / spot-it), journey locked by counts, verified-fix feed as the retention spine, ledger as the only hard sell.",
+      "w": 1200,
+      "x": 1800,
+      "y": -170
+    },
+    "t2": { "x": 0, "y": 2055, "text": "The product, screen by screen — rebuilt from scratch, nothing in a frame but what it renders", "kind": "title1", "maxW": 1700 },
+    "t3": { "x": 0, "y": 4740, "text": "Live run — a real store, walked today. New voice recipe: open with the trade-off (the steelman), facts with counts, competitor contrast only where verified, cited research, fix + options + cost. No synthesized quotes anywhere.", "kind": "title1", "maxW": 1700 },
+    "r5": {
+      "fill": "pink",
+      "text": "RUN NOTES — chubbiesshorts.com, walked live 2026-11-16. Everything on the board was observed, not imagined: the $2.98 pre-selected 'Checkout+' vs. the PDP's 'Easy returns & exchanges within 30 days'; the decline button reading 'CHECKOUT WITHOUT FREE RETURNS'; five different badges on identical $64.50→$40.00 markdowns; shipping ($5.00) first revealed on the payment page; two modals between cart and checkout; pre-checked newsletter consent; Bonobos banner 'Free Shipping & Returns in the US' checked the same morning. NOT claimed (couldn't verify in one visit): whether the delivery countdown resets; whether badges rotate over time. One competitor verified, one (Vuori) not reachable — the contrast row ships only with verified rows.",
+      "w": 480,
+      "x": 460,
+      "y": 4980
+    },
+    "r1": {
+      "fill": "gray",
+      "text": "THE RULE — nothing inside a frame except what the product renders. No captions, no commentary, no characters. If a screen needs a sentence beside it to land, the screen failed and gets redesigned, not annotated. Same bar as the real product: the drawer will sit on a stranger's site with nobody standing next to it.",
+      "w": 480,
+      "x": -580,
+      "y": 2300
+    },
+    "r2": {
+      "fill": "gray",
+      "text": "WHY EACH SCREEN EARNS ITS PLACE — 1 · The walk narrates itself in first person; the owner watches a stranger struggle with their store, so the findings confirm something witnessed, not claimed. Consent card first. 2 · Verdict sentence, then finding #1 complete through five layers (buyer voice, their ringed totals, the 48% stake, fix, two priced options), finding #2 complete with a different lead so the voice isn't a formula, then nine one-line teasers with locations, journey counts, spot-it. The only button is 'Keep this report' — the absence of an upsell is the pitch. 3 · The ring draws on their live page with a 1/14 counter: the product becomes a layer on their site, not a report about it. 4 · Eleven moments compress to three habits. A list says you have problems; a pattern says you have A problem — more damning and more fixable. 5 · The product interviews the owner: a consultant scoping an engagement, not a tool being configured. The last bubble sells the plan's shape before anything is paid. 6 · Skeleton beside unlocked state. The one paywall in the whole flow, placed where desire peaks — after the plan is built around their team, budget, holiday. Instant unlock: pre-built, no loading bar at the moment doubt finally died. 7 · Two verified cards plus a regression catch. Fear converts, competence retains, vigilance renews.",
+      "w": 480,
+      "x": -580,
+      "y": 2560
+    },
+    "r3": {
+      "fill": "gray",
+      "text": "THE PACKAGING LINE — Free: the live walk, two complete findings (one shippable today), Show Me on every instance, all 11 located and counted, the habits view with every lock visible, the full intake, the roadmap's shape. Held: the other nine opened, fix+cost for everything, the journey's 16 moments incl. the loudest one at payment, roadmap contents, overnight re-walks + regression alerts, the reasoning behind every verdict. The free tier must satisfy AND leave holes the owner can name precisely — satisfied and incomplete at the same time. Buying earlier would be buying claims; buying at the skeleton is buying their own plan back.",
+      "w": 480,
+      "x": -580,
+      "y": 3660
+    },
+    "r4": {
+      "fill": "gray",
+      "text": "WHAT MAKES IT STAND COLD — 1) Their pixels, not ours: nothing to translate to their business, it already IS their business. 2) Specifics carry authority: every claim arrives with a number or a location. 3) Consultant voice, never scanner: business consequences, no tags, no scores. 4) Verifiable on the spot: Show Me, 'verified twice' with timestamps, spot-it — the product keeps handing over ways to check its work, which is what makes the held findings credible sight unseen. 5) Honest locks: blurred imagery, readable captions, real counts. Open risks live in the rationale doc: pipeline must hit this bar, multi-page capture, zero-findings case, estimate corrections, non-ecommerce dialects.",
+      "w": 480,
+      "x": -580,
+      "y": 4220
+    },
+    "n3": {
+      "fill": "pink",
+      "text": "HOLES IN THE HAPPY PATH (deliberate — this is where the real design work lives): 1) Multi-page capture: the journey needs either the user clicking through their own checkout with us watching, or the server-side walk — consent, logged-in areas and test orders unsolved. 2) The zero-findings case: a genuinely good page needs its own short, honest experience ('I found almost nothing — here's the one thing'). 3) Spot-it needs an accessibility path (the give-up reveal doubles as it). 4) L5 estimates will sometimes be wrong on custom stacks — ranges plus a 'that's not right, here's our setup' correction loop. 5) Weekly re-walks cost real money — cadence vs margin needs a model. 6) fernway is e-commerce; the SaaS/booking/content versions of this language need their own pass. 7) Verification must recognize fixes made differently than Option A or B — 'fixed, your way' is a valid verdict.",
+      "w": 380,
+      "x": 5960,
+      "y": 2300
+    }
+  },
+  "order": [
+    "Artboard-5ons.dc.html",
+    "Main.dc.html",
+    "Narrative.dc.html",
+    "Act2.dc.html",
+    "Act3.dc.html",
+    "W1-Walk.dc.html",
+    "W2-Read.dc.html",
+    "W3-ShowMe.dc.html",
+    "W4-Report.dc.html",
+    "W5-Intake.dc.html",
+    "W6-Roadmap.dc.html",
+    "W7-Verify.dc.html",
+    "LiveRun-Chubbies.dc.html"
+  ],
+  "pages": [],
+  "title": "Funnel Wireframes"
+}

@@ -172,14 +172,17 @@ Three sources, a ladder — and no number without a source:
 
 Verbs that carry the register: *costs, leaks, breaks, contradicts, discounts, teaches customers to hesitate, sends buyers off-site.* The mascot stays fun; the sentences stay serious. That contrast *is* the brand.
 
-**The house voice (decided 2026-11-11, after the V1/V2 side-by-side):** narrative, first-person consultant — *"I walked your checkout the way a first-time buyer would"* — with **no class labels on customer-facing surfaces** (the taxonomy runs the engine; it never appears in the copy a cold reader sees). Each finding opens with whichever **lead** hits hardest, and leads must vary across a screen — never monotone:
+**The house voice — v3 (revised 2026-11-16; supersedes the 2026-11-11 lead rules below):** narrative, first-person consultant — *"I walked your checkout the way a first-time buyer would"* — with **no class labels on customer-facing surfaces**, and now **no synthesized quotes in customer-facing copy**. Jeffrey's verdict after seeing quotes in context: *"I don't think you need that quote — it's just confusing."* Walker quotes are **evidence** (the receipts drill-down, the audit trail), never the pitch. The customer-facing finding, in order:
 
-1. **The quote** — a synthesized customer thinking aloud, always attributed as synthesized ("a first-time buyer, step 4 of your checkout · synthesized from our walk"). Reserved for the emotional breaks; at most ~2 per screen.
-2. **The site fact** — the measured number, cold: "14 of your 16 products say 'Only 2 left!' The badge survives a refresh. Your customers can count."
-3. **The contradiction** — two of their own statements side by side: "Saving an item requires an account. Buying one doesn't."
-4. **The observation** — one plain declarative: "Mid-purchase, your size guide opens a PDF on top of the checkout."
+1. **Open with the trade-off (the steelman).** The adversary already computes the strongest honest defense of the design; the finding now opens by *granting* it: *"Charging $14.90 flat shipping is a legitimate call — eating it costs real margin. The problem isn't the fee; it's that customers discover it at step 4."* Empathy comes from taking their business decision seriously — never from simulated customer feelings.
+2. **The fact** — measured, located, counted. *"14 of your 16 products. The badge survives a refresh."*
+3. **The competitor contrast** *(new pipeline stage — planned)*: a narrow probe of 2–3 named competitors on the one practice in question, with links or screenshots. **Honesty rule: the row ships only when verified this run AND when it actually contrasts** — if the competitor does the same thing, cite research instead. (First live use 2026-11-16: Bonobos' "Free Shipping & Returns in the US" banner against a pre-selected $2.98 returns fee.)
+4. **The research** — KB citation with a link to the study. Never free-recalled; the synthesis prompt already enforces KB-only citation.
+5. **Fix → options → cost** — layers 3–5 of the finding anatomy, unchanged.
 
-The analyst's cost line (mechanism + citation) always follows the lead, whatever its form. Quotes are the spice, not the sauce: because the quote format reads as user research, every synthesized quote is labeled as synthesized — the device's power depends on never faking its provenance.
+**Opportunity framing (added 2026-11-16 — overrides any conflicting wording above):** the reader may be the person who *built* the thing under critique. Critique moments and elements, never the owner or their work. No wit at the site's expense — *"your checkout does the un-convincing"* is banned copy; it indicts the builder. The Read opens with what demonstrably works, then frames every finding as recoverable sales: *"opportunities you're missing,"* never *"you're doing a bad job."* Sharpness lives in the facts and counts, not in the verdict sentence. The mascot stays fun; the sentences stay professional with gravity — that contrast is the brand.
+
+Lead variety still applies to the held rows and secondary findings (site fact / contradiction / plain observation — never monotone), with the quote lead retired.
 
 ## 7. What keeps them (sketch — to hash out later, per Jeffrey)
 

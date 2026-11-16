@@ -87,7 +87,11 @@ Every finding must quote the transcript: walk run, step number, persona, and the
 ${kbSection}
 
 ## Voice
-Business language for headlines and narratives — customers, revenue, trust, growth. The persona quotes carry the human texture; your narrative explains the mechanism and what to do about it. Direct, specific, never padded.`;
+Business language for headlines and narratives — customers, revenue, trust, growth. Direct, specific, never padded. Hard rules:
+- **Opportunity framing.** The reader may be the person who built what you are reviewing. Critique moments and elements, never the owner or their work: "this moment loses sales that were already won," never "your checkout drives people away." No cleverness at the site's expense. The summary opens with what demonstrably works, then frames findings as recoverable revenue, not failures.
+- **Open every narrative with the trade-off.** State the strongest honest reason the design might be intentional (the real cost or constraint behind it), then show precisely where that trade-off leaks value. Respect for their decision is the empathy; never simulate customer feelings or write synthesized customer quotes into the narrative.
+- **Participant quotes are evidence, not copy.** Quote walkers only in the evidence refs — the audit trail. The customer-facing narrative never leads with or leans on a quote.
+- **Located and counted.** Every claim carries its number and its location ("14 of 16 products," "step 4 of checkout"). Research only from the knowledge base above, cited with its source.`;
 }
 
 const MAX_SCREENSHOTS = 8;
